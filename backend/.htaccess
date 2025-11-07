@@ -1,0 +1,28 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/vanimajo/dj"
+PassengerBaseURI "/api"
+PassengerPython "/home/vanimajo/virtualenv/dj/3.12/bin/python"
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+# ================================
+# Reglas Vue (SPA frontend)
+# ================================
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  # 👇 Todo lo que empiece con /api va directo a Django/Passenger
+  RewriteCond %{REQUEST_URI} ^/api
+  RewriteRule ^ - [L]
+  # 👇 Si existe archivo o carpeta real, lo sirve directamente
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  # 👇 Todo lo demás va al frontend (Vue SPA)
+  RewriteRule ^ index.html [L]
+</IfModule>
+# Evitar listado de directorios
+Options -Indexes
+# ================================
+# Configuración Passenger Django
+# ================================
+# ⚠️ ESTE BLOQUE LO GENERA CLOUDLINUX AUTOMÁTICAMENTE DESDE CPANEL
+# Ajusta en cPanel que tu app corra bajo /api y con el Python correcto
