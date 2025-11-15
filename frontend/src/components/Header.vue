@@ -71,6 +71,17 @@ const logout = () => {
                                             <router-link to="/" title="Home">Inicio</router-link>
                                         </li>
                                         <li>
+                                            <router-link to="/Ingreso_arriendo" title="Ingreso Arriendo">Ingreso Arriendo</router-link>
+                                        </li>
+                                          <li>
+                                            <router-link to="/Tipo_arriendo" title="Tipo Arriendo">Tipo Arriendo</router-link>
+                                        </li>
+                                          <li>
+                                            <router-link to="/Gastos" title="Gastos Arriendo">Gastos Arriendo</router-link>
+                                        </li>
+                                        
+                                        
+                                        <li>
                                             <router-link to="/Presupuesto"
                                                 title="Creación de Presupuestos">Presupuestos</router-link>
                                         </li>

@@ -39,9 +39,10 @@ urlpatterns = [
     path('api/', include('pagoCuotas.urls')), 
     path('api/', include('detallePagoCuotas.urls')), 
     path('api/', include('generarCuotas.urls')), 
-
     path('api/', include('creditos.urls')),
-    
+    path('api/', include('reservas.urls')),
+    path('api/', include('tipo_arriendo.urls')),
+    path('api/', include('gastos.urls')),
     
 
     # esta son las documentaciones de todas laas APIS

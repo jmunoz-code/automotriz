@@ -27,6 +27,7 @@ class GenerarCuotas(models.Model):
     class Meta:
         verbose_name = "Generar Cuotas"
         verbose_name_plural = "generar cuotas"
+        
         # Asegura que no haya dos cuotas con el mismo número para el mismo préstamo/patente.
         unique_together = ('patente', 'numero_cuota')
 
