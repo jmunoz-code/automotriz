@@ -1,7 +1,7 @@
 import Clientes from '@/views/Clientes.vue'
 
 import Gastos from '@/views/Gastos.vue'
-
+import Informe_arriendo from '@/views/Informe_arriendo.vue'
 
 import Tipo_arriendo from '@/views/Tipo_arriendo.vue'
 import Ingreso_arriendo from '@/views/Ingreso_arriendo.vue'
@@ -67,6 +67,12 @@ const router = createRouter({
       path: '/Tipo_arriendo',
       component: Tipo_arriendo,
       name: 'Tipo_arriendo'
+    },
+
+    {
+      path: '/Informe_arriendo',
+      component: Informe_arriendo,
+      name: 'Informe_arriendo'
     },
 
     

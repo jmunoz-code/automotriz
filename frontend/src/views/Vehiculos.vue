@@ -34,6 +34,9 @@ export default {
       patenteBuscar: '',
       // NUEVO: Campo para el radio button (Booleano: true = Sí, false = No)
       propiedad_automotriz: false,
+      revision_tecnica_al_dia: false,
+      permiso_circulacion: false,
+      seguro_vigente: false,
 
     });
 
@@ -221,7 +224,10 @@ export default {
 
           // NUEVO: Cargar el valor de propiedad_automotriz
           // El backend devuelve un booleano, Vue lo puede manejar directamente
-          formData.value.propiedad_automotriz = Data.propiedad_automotriz;
+          formData.value.propiedad_automotriz = Data.propiedad_automotriz === 1;
+          formData.value.revision_tecnica_al_dia = Data.revision_tecnica_al_dia === 1;
+          formData.value.permiso_circulacion = Data.permiso_circulacion === 1;
+          formData.value.seguro_vigente = Data.seguro_vigente === 1;
 
           // ¡AQUÍ ESTÁ LA MODIFICACIÓN CLAVE!
           // Cargar el total de gastos y asignarlo a formData.value.valorTotalFormateado
@@ -357,7 +363,10 @@ export default {
           precio_venta: limpiarFormatoNumerico(formData.value.precio_venta),
           estado: 0,
           // NUEVO CAMPO: Se envía el valor booleano
-          propiedad_automotriz: formData.value.propiedad_automotriz
+          propiedad_automotriz: formData.value.propiedad_automotriz,
+          revision_tecnica_al_dia: formData.value.revision_tecnica_al_dia,
+          permiso_circulacion: formData.value.permiso_circulacion,
+          seguro_vigente: formData.value.seguro_vigente
 
         };
         const nuevoHabilitado = formData.value.propiedad_automotriz;
@@ -365,6 +374,24 @@ export default {
           payload.propiedad_automotriz = 0;
         } else {
           payload.propiedad_automotriz = 1;
+        }
+
+        if (formData.value.revision_tecnica_al_dia === false) {
+          payload.revision_tecnica_al_dia = 0;
+        } else {
+          payload.revision_tecnica_al_dia = 1;
+        }
+
+        if (formData.value.permiso_circulacion === false) {
+          payload.permiso_circulacion = 0;
+        } else {
+          payload.permiso_circulacion = 1;
+        }
+
+        if (formData.value.seguro_vigente === false) {
+          payload.seguro_vigente = 0;
+        } else {
+          payload.seguro_vigente = 1;
         }
 
         console.log("URL de la API:", apiUrl);
@@ -424,6 +451,9 @@ export default {
         total_gastos_cargados: 0, // Reiniciar también el campo calculado
         // NUEVO: Se reinicia al valor por defecto
         propiedad_automotriz: false,
+        revision_tecnica_al_dia: false,
+        permiso_circulacion: false,
+        seguro_vigente: false,
       };
       mostrarMensaje('Formulario limpiado.', 'info');
     };
@@ -453,8 +483,26 @@ export default {
           payload.propiedad_automotriz = 1;
         }
 
-        
+
         /// payload.propiedad_automotriz = formData.value.propiedad_automotriz;
+
+        if (formData.value.revision_tecnica_al_dia === false) {
+          payload.revision_tecnica_al_dia = 0;
+        } else {
+          payload.revision_tecnica_al_dia = 1;
+        }
+
+        if (formData.value.permiso_circulacion === false) {
+          payload.permiso_circulacion = 0;
+        } else {
+          payload.permiso_circulacion = 1;
+        }
+
+        if (formData.value.seguro_vigente === false) {
+          payload.seguro_vigente = 0;
+        } else {
+          payload.seguro_vigente = 1;
+        }
 
 
         const response = await fetch(apiUrl, {
@@ -542,6 +590,9 @@ export default {
               precio_venta: formatearMilesConPunto(vehiculo.precio_venta),
               // NUEVO: Agregamos el campo para mostrarlo en la tabla si es necesario
               propiedad_automotriz: vehiculo.propiedad_automotriz,
+              revision_tecnica_al_dia: vehiculo.revision_tecnica_al_dia,
+              permiso_circulacion: vehiculo.permiso_circulacion,
+              seguro_vigente: vehiculo.seguro_vigente,
 
             };
           }));
@@ -623,7 +674,7 @@ export default {
 <template>
   <Header></Header>
 
-  <div class="container mt-3  container-fluid">
+  <div class="container-fluid mt-3" style="width: calc(100% - 30px); margin: 0 auto;">
     <div class="card shadow-sm mt-3 ">
       <div class="card-header" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Mantención
         Vehículos
@@ -652,141 +703,205 @@ export default {
                 de Vehículos</div>
             </div>
             <div class="card-body left">
-              <div class="mb-3">
-                <label class="form-label negrita">Marca Vehículo</label>
-                <div>
-                  <v-select :options="opcionestipo_marca_id" name="tipo_marca_id" id="tipo_marca_id"
-                    v-model="formData.tipo_marca_id" label="descripcion" placeholder="Seleccionar tipo de marca"
-                    :disabled="isLoading" class="mi-dropdown" @update:modelValue="ontipo_marca_idChange"
-                    :reduce="option => option.id"> </v-select>
-
-                  <div v-if="isLoading" class="form-text text-muted">Cargando tipos de marca...</div>
-                </div>
-                <p v-if="formData.tipo_marca_id">ID de la marca seleccionada: {{ formData.tipo_marca_id }}</p>
-              </div>
-
-              <div class="mb-3">
-                <label for="modelo" class="form-label negrita">Modelo</label>
-                <input type="text" class="form-control form-control-sm" id="modelo" v-model="formData.modelo"
-                  style="width: 310px;" required />
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label negrita">Tipo Vehículo</label>
-                <div>
-                  <v-select :options="opcionestipo_vehiculo_id" name="tipo_vehiculo_id" id="tipo_vehiculo_id"
-                    v-model="formData.tipo_vehiculo_id" label="descripcion" placeholder="Seleccionar tipo de vehículo"
-                    :disabled="isLoading" class="mi-dropdown" @update:modelValue="ontipo_vehiculo_idChange"
-                    :reduce="option => option.id"> </v-select>
-
-                  <div v-if="isLoading" class="form-text text-muted">Cargando tipos de vehículo...</div>
-                </div>
-                <p v-if="formData.tipo_vehiculo_id">ID del tipo de vehículo seleccionado: {{ formData.tipo_vehiculo_id
-                }}</p>
-
-              </div>
-
-              <div class="mb-3">
-                <label for="TipoCombustible" class="form-label negrita">Tipo Combustible</label>
-                <div>
-                  <v-select name="TipoCombustible" id="TipoCombustible" v-model="formData.TipoCombustible"
-                    label="descripcion" placeholder="Seleccionar tipo de combustible" :options="opcionesTipoCombustible"
-                    :disabled="isLoading" class="mi-dropdown" @update:modelValue="onTipoCombustibleChange"
-                    :reduce="option => option.id"></v-select>
-                  <div v-if="isLoading" class="form-text text-muted">Cargando tipos de combustible...</div>
-                </div>
-                <p v-if="formData.TipoCombustible">ID del tipo de combustible seleccionado: {{ formData.TipoCombustible
-                }}
-                </p>
-              </div>
-
-              <div class="mb-3">
-                <label for="TipoTransmision" class="form-label negrita">Tipo Trasmisión</label>
-                <div>
-                  <v-select name="TipoTransmision" id="TipoTransmision" v-model="formData.TipoTransmision"
-                    label="descripcion" placeholder="Seleccionar tipo de transmisión" :options="opcionesTipoTransmision"
-                    :disabled="isLoading" class="mi-dropdown" @update:modelValue="onTipoTransmisionChange"
-                    :reduce="option => option.id"></v-select>
-                  <div v-if="isLoading" class="form-text text-muted">Cargando tipos de Transmisión...</div>
-                </div>
-                <p v-if="formData.TipoTransmision">ID del tipo de Transmisión seleccionado: {{ formData.TipoTransmision
-                }}
-                </p>
-              </div>
-
-              <div class="mb-3">
-                <label for="agno" class="form-label negrita">Año</label>
-                <input placeholder="XXXX" type="number" size="4" class="form-control form-control-sm" id="agno"
-                  v-model="formData.agno" style="width: 85px;" required />
-              </div>
-
-              <div class="mb-3">
-                <label for="numero_motor" class="form-label negrita">Número Motor</label>
-                <input type="text" size="20" maxlength="20" class="form-control form-control-sm" id="numero_motor"
-                  name="numero_motor" v-model="formData.numero_motor" style="width: 250px;" required />
-              </div>
-
-              <div class="mb-3">
-                <label for="chasis" class="form-label negrita">Número Chasis</label>
-                <input type="text" size="20" maxlength="20" class="form-control form-control-sm" id="chasis"
-                  v-model="formData.numero_chasis" style="width: 400px;" required />
-              </div>
-
-              <div class="mb-3">
-                <label for="color" class="form-label negrita">Color</label>
-                <input type="text" size="50" maxlength="50" class="form-control form-control-sm" id="color"
-                  v-model="formData.color" style="width: 500px;" required />
-              </div>
-
-              <div class="mb-3">
-                <label for="patente" class="form-label negrita">Patente</label>
-                <input placeholder=" XX-XX-XX" type="text" size="10" maxlength="10" class="form-control form-control-sm"
-                  id="patente" v-model="formData.patente" style="width: 200px;" required />
-              </div>
-
-              <div class="mb-3">
-                <label for="kilometraje" class="form-label negrita">Kilometraje</label>
-                <input type="text" size="10" maxlength="20" id="kilometraje" class="form-control form-control-sm"
-                  v-model="formData.kilometraje" style="width: 200px;" required
-                  @focus="formData.kilometraje = limpiarFormatoNumerico(formData.kilometraje)" />
-              </div>
-
-              <div class="mb-3">
-                <label for="precio_compra" class="form-label negrita">Precio compra $</label>
-                <input type="text" size="20" maxlength="20" id="precio_compra" class="form-control form-control-sm"
-                  v-model="formData.precio_compra" style="width: 200px;" required
-                  @focus="formData.precio_compra = limpiarFormatoNumerico(formData.precio_compra)" />
-              </div>
-
-              <div class="mb-3">
-                <label for="total_gastos_cargados" class="form-label negrita">Total Gastos (Tabla Costos) $</label>
-                <div style="font-size: small;">
-                  {{ formData.total_valor_patente }}
-                </div>
-              </div>
-
-
-              <div class="mb-3">
-                <label for="precio_venta" class="form-label negrita">Precio Venta $</label>
-                <input type="text" size="20" maxlength="20" id="precio_venta" class="form-control form-control-sm"
-                  v-model="formData.precio_venta" style="width: 200px;"
-                  @focus="formData.precio_venta = limpiarFormatoNumerico(formData.precio_venta)" />
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label negrita">Propiedad Automotriz</label>
-                <div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="propiedad_automotriz" id="propiedad_si"
-                      :value="true" v-model="formData.propiedad_automotriz"
-                      :checked="formData.propiedad_automotriz == 1" />
-                    <label class="form-check-label" for="propiedad_si">Sí</label>
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <label class="form-label negrita">¿Revisión Técnica al día?</label>
+                  <div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="revision_tecnica_al_dia" id="revision_si"
+                        :value="true" v-model="formData.revision_tecnica_al_dia"
+                        :checked="formData.revision_tecnica_al_dia == 1" />
+                      <label class="form-check-label" for="revision_si">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="revision_tecnica_al_dia" id="revision_no"
+                        :value="false" v-model="formData.revision_tecnica_al_dia"
+                        :checked="formData.revision_tecnica_al_dia == 0" />
+                      <label class="form-check-label" for="revision_no">No</label>
+                    </div>
                   </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="propiedad_automotriz" id="propiedad_no"
-                      :value="false" v-model="formData.propiedad_automotriz"
-                      :checked="formData.propiedad_automotriz == 0" />
-                    <label class="form-check-label" for="propiedad_no">No</label>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label negrita">¿Permiso de Circulación?</label>
+                  <div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="permiso_circulacion" id="permiso_si"
+                        :value="true" v-model="formData.permiso_circulacion"
+                        :checked="formData.permiso_circulacion == 1" />
+                      <label class="form-check-label" for="permiso_si">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="permiso_circulacion" id="permiso_no"
+                        :value="false" v-model="formData.permiso_circulacion"
+                        :checked="formData.permiso_circulacion == 0" />
+                      <label class="form-check-label" for="permiso_no">No</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label negrita">¿Seguro Vigente?</label>
+                  <div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="seguro_vigente" id="seguro_si" :value="true"
+                        v-model="formData.seguro_vigente" :checked="formData.seguro_vigente == 1" />
+                      <label class="form-check-label" for="seguro_si">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="seguro_vigente" id="seguro_no" :value="false"
+                        v-model="formData.seguro_vigente" :checked="formData.seguro_vigente == 0" />
+                      <label class="form-check-label" for="seguro_no">No</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label negrita">Marca Vehículo</label>
+                  <div>
+                    <v-select :options="opcionestipo_marca_id" name="tipo_marca_id" id="tipo_marca_id"
+                      v-model="formData.tipo_marca_id" label="descripcion" placeholder="Seleccionar tipo de marca"
+                      :disabled="isLoading" class="mi-dropdown" @update:modelValue="ontipo_marca_idChange"
+                      :reduce="option => option.id"> </v-select>
+
+                    <div v-if="isLoading" class="form-text text-muted">Cargando tipos de marca...</div>
+                  </div>
+                  <p v-if="formData.tipo_marca_id">ID de la marca seleccionada: {{ formData.tipo_marca_id }}</p>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="modelo" class="form-label negrita">Modelo</label>
+                  <input type="text" class="form-control form-control-sm" id="modelo" v-model="formData.modelo"
+                    style="width: 100%;" required />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label negrita">Tipo Vehículo</label>
+                  <div>
+                    <v-select :options="opcionestipo_vehiculo_id" name="tipo_vehiculo_id" id="tipo_vehiculo_id"
+                      v-model="formData.tipo_vehiculo_id" label="descripcion" placeholder="Seleccionar tipo de vehículo"
+                      :disabled="isLoading" class="mi-dropdown" @update:modelValue="ontipo_vehiculo_idChange"
+                      :reduce="option => option.id"> </v-select>
+
+                    <div v-if="isLoading" class="form-text text-muted">Cargando tipos de vehículo...</div>
+                  </div>
+                  <p v-if="formData.tipo_vehiculo_id">ID del tipo de vehículo seleccionado: {{ formData.tipo_vehiculo_id
+                  }}</p>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="TipoCombustible" class="form-label negrita">Tipo Combustible</label>
+                  <div>
+                    <v-select name="TipoCombustible" id="TipoCombustible" v-model="formData.TipoCombustible"
+                      label="descripcion" placeholder="Seleccionar tipo de combustible"
+                      :options="opcionesTipoCombustible" :disabled="isLoading" class="mi-dropdown"
+                      @update:modelValue="onTipoCombustibleChange" :reduce="option => option.id"></v-select>
+                    <div v-if="isLoading" class="form-text text-muted">Cargando tipos de combustible...</div>
+                  </div>
+                  <p v-if="formData.TipoCombustible">ID del tipo de combustible seleccionado: {{
+                    formData.TipoCombustible
+                  }}
+                  </p>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="TipoTransmision" class="form-label negrita">Tipo Trasmisión</label>
+                  <div>
+                    <v-select name="TipoTransmision" id="TipoTransmision" v-model="formData.TipoTransmision"
+                      label="descripcion" placeholder="Seleccionar tipo de transmisión"
+                      :options="opcionesTipoTransmision" :disabled="isLoading" class="mi-dropdown"
+                      @update:modelValue="onTipoTransmisionChange" :reduce="option => option.id"></v-select>
+                    <div v-if="isLoading" class="form-text text-muted">Cargando tipos de Transmisión...</div>
+                  </div>
+                  <p v-if="formData.TipoTransmision">ID del tipo de Transmisión seleccionado: {{
+                    formData.TipoTransmision
+                  }}
+                  </p>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="agno" class="form-label negrita">Año</label>
+                  <input placeholder="XXXX" type="number" size="4" class="form-control form-control-sm" id="agno"
+                    v-model="formData.agno" style="width: 100%;" required />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="numero_motor" class="form-label negrita">Número Motor</label>
+                  <input type="text" size="20" maxlength="20" class="form-control form-control-sm" id="numero_motor"
+                    name="numero_motor" v-model="formData.numero_motor" style="width: 100%;" required />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="chasis" class="form-label negrita">Número Chasis</label>
+                  <input type="text" size="20" maxlength="20" class="form-control form-control-sm" id="chasis"
+                    v-model="formData.numero_chasis" style="width: 100%;" required />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="color" class="form-label negrita">Color</label>
+                  <input type="text" size="50" maxlength="50" class="form-control form-control-sm" id="color"
+                    v-model="formData.color" style="width: 100%;" required />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="patente" class="form-label negrita">Patente</label>
+                  <input placeholder=" XX-XX-XX" type="text" size="10" maxlength="10"
+                    class="form-control form-control-sm" id="patente" v-model="formData.patente" style="width: 100%;"
+                    required />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="kilometraje" class="form-label negrita">Kilometraje</label>
+                  <input type="text" size="10" maxlength="20" id="kilometraje" class="form-control form-control-sm"
+                    v-model="formData.kilometraje" style="width: 100%;" required
+                    @focus="formData.kilometraje = limpiarFormatoNumerico(formData.kilometraje)" />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="precio_compra" class="form-label negrita">Precio compra $</label>
+                  <input type="text" size="20" maxlength="20" id="precio_compra" class="form-control form-control-sm"
+                    v-model="formData.precio_compra" style="width: 100%;" required
+                    @focus="formData.precio_compra = limpiarFormatoNumerico(formData.precio_compra)" />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="total_gastos_cargados" class="form-label negrita">Total Gastos (Tabla Costos) $</label>
+                  <div style="font-size: small;">
+                    {{ formData.total_valor_patente }}
+                  </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label for="precio_venta" class="form-label negrita">Precio Venta $</label>
+                  <input type="text" size="20" maxlength="20" id="precio_venta" class="form-control form-control-sm"
+                    v-model="formData.precio_venta" style="width: 100%;"
+                    @focus="formData.precio_venta = limpiarFormatoNumerico(formData.precio_venta)" />
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label negrita">Propiedad Automotriz</label>
+                  <div class="d-flex align-items-center" style="height: 31px;">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="propiedad_automotriz" id="propiedad_si"
+                        :value="true" v-model="formData.propiedad_automotriz"
+                        :checked="formData.propiedad_automotriz == 1" />
+                      <label class="form-check-label" for="propiedad_si">Sí</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="propiedad_automotriz" id="propiedad_no"
+                        :value="false" v-model="formData.propiedad_automotriz"
+                        :checked="formData.propiedad_automotriz == 0" />
+                      <label class="form-check-label" for="propiedad_no">No</label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -837,6 +952,9 @@ export default {
               <th>Precio Compra</th>
               <th>Precio Venta</th>
               <th>Propiedad Automotriz</th>
+              <th>Al día</th>
+              <th>Permiso Circulación</th>
+              <th>Seguro Vigente</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -851,6 +969,9 @@ export default {
               <td>{{ vehiculo.precio_compra }}</td>
               <td>{{ vehiculo.precio_venta }}</td>
               <td>{{ vehiculo.propiedad_automotriz ? 'Sí' : 'No' }}</td>
+              <td>{{ vehiculo.revision_tecnica_al_dia ? 'Sí' : 'No' }}</td>
+              <td>{{ vehiculo.permiso_circulacion ? 'Sí' : 'No' }}</td>
+              <td>{{ vehiculo.seguro_vigente ? 'Sí' : 'No' }}</td>
 
 
               <td>

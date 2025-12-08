@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'reservas',
     'tipo_arriendo',
     'gastos',
+    'informes',
 ]
 
 # --- MIDDLEWARE ---

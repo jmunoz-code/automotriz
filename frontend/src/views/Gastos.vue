@@ -1,7 +1,6 @@
 <template>
     <!-- Asumo que usas tu HeaderAdmin -->
     <Header></Header> 
-
     <div class="container mt-3">
         <div class="card shadow-sm mt-3 mb-3">
             <div class="card-header" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">
@@ -82,6 +81,7 @@
                                     <button @click="iniciarEdicion(gasto)" class="btn btn-warning btn-sm me-2">
                                         Modificar
                                     </button>
+                                    &nbsp;
                                     <button @click="eliminarGasto(gasto.id)" class="btn btn-danger btn-sm">
                                         Eliminar
                                     </button>

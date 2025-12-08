@@ -28,7 +28,10 @@ class Vehiculos(models.Model):
     precio_venta = models.IntegerField(null=True, default=0)
      # NUEVO CAMPO
     propiedad_automotriz = models.IntegerField(null=True)
-     
+    revision_tecnica_al_dia = models.IntegerField(null=True, default=0)
+    permiso_circulacion = models.IntegerField(null=True, default=0)
+    seguro_vigente = models.IntegerField(null=True, default=0)
+
 
       #clase helper
     # cuando llamo modelo campo muetsre por defecto

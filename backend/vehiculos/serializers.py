@@ -34,9 +34,10 @@ class VehiculosSerializer(serializers.ModelSerializer):
             'vehiculo_descripcion',
             'precio_venta',
             # NUEVO CAMPO
-            'propiedad_automotriz' 
-            
-            
+            'propiedad_automotriz',
+            'revision_tecnica_al_dia',
+            'permiso_circulacion',
+            'seguro_vigente'
         ]
 
     # Método para obtener la descripción de la marca
