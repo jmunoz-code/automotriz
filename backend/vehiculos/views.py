@@ -25,8 +25,18 @@ class Clase1(APIView):
         Lista todos los vehículos ordenados por ID descendente.
         """
         # .all() es redundante después de order_by
-        data = Vehiculos.objects.order_by('-id')
-        serializer = VehiculosSerializer(data, many=True)
+        queryset = Vehiculos.objects.order_by('-id')
+
+        # Filtros
+        patente = request.query_params.get('patente', None)
+        marca = request.query_params.get('marca', None)
+
+        if patente:
+            queryset = queryset.filter(patente__icontains=patente)
+        if marca:
+            queryset = queryset.filter(tipo_marca__descripcion__icontains=marca)
+
+        serializer = VehiculosSerializer(queryset, many=True)
         # Es mejor usar Response de DRF en lugar de JsonResponse
         return Response({"data": serializer.data}, status=HTTPStatus.OK)
 

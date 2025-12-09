@@ -97,6 +97,10 @@ const logout = () => {
                                                 title="Informes 1 Utilidades Créditos">Informe Créditos</router-link>
                                         </li>
                                         <li v-if="nivel === 'ADMIN'">
+                                            <router-link to="/DocumentacionVehiculos"
+                                                title="Documentacion Vehiculos">Documentacion Vehiculos</router-link>
+                                        </li>
+                                        <li v-if="nivel === 'ADMIN'">
                                             <router-link to="/InformeVehiculos"
                                                 title="Informes Vehiculos Propiedad Automotora">Informe Vehiculos
                                                 P.A.</router-link>
