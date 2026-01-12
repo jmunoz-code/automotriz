@@ -74,6 +74,9 @@ export default {
     // NUEVA VARIABLE PARA FILTRAR CONTRATOS
     const filtroContratos = ref(''); //
 
+    // Nivel del usuario desde localStorage
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     // --- Funciones auxiliares para formatear y validar ---
     const formatearMilesConPunto = (valor) => {
       if (valor === null || valor === undefined) {
@@ -244,10 +247,10 @@ export default {
 
     const actualizarEstadoContrato = async (contrato) => {
       // Usamos el ID del contrato (presupuesto) para la URL
-      
+
       const contratoId = contrato.id;
 
-    
+
       const nuevoHabilitado = contrato.estado;
 
 
@@ -1161,7 +1164,8 @@ export default {
       handleBlur,
       filtroContratos, //
       contratosFiltrados, //
-      actualizarEstadoContrato
+      actualizarEstadoContrato,
+      nivel, // Added nivel to the return object
     };
   },
 };
@@ -1506,13 +1510,13 @@ export default {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="contrato in contratosFiltrados" :key="contrato.id" 
+              <tr v-for="contrato in contratosFiltrados" :key="contrato.id"
                 @click="cargarContratoEnFormulario(contrato)" style="cursor: pointer;">
                 <td style="text-align: center;">{{ contrato.fecha_creacion }}</td>
                 <td style="text-align: center;">{{ contrato.fecha_inicio_pago }}</td>
                 <td style="text-align: center;">{{ contrato.patente_vehiculo }}</td>
                 <td style="text-align: left;">{{ contrato.nombre_cliente }}</td>
-                 <td style="text-align: left;">{{ contrato.apellidos }}</td>
+                <td style="text-align: left;">{{ contrato.apellidos }}</td>
                 <td style="text-align: center;">{{ formatearMilesConPunto(contrato.precio_venta) }}</td>
                 <td style="text-align: center;">{{ contrato.tipo_pago == 0 ? 'Contado' : 'Crédito' }}</td>
                 <td style="text-align: center;">{{ formatearMilesConPunto(contrato.valor_pie) }}</td>
@@ -1520,7 +1524,8 @@ export default {
                 <td style="text-align: center;" title="Creacion Cuotas">{{ contrato.numero_cuotas }}</td>
                 <td style="text-align: center;">{{ formatearMilesConPunto(contrato.valor_cuota) }}</td>
                 <td>
-                  <button type="button" class="btn btn-danger btn-sm" @click.stop="abrirModalEliminar(contrato.id)">
+                  <button type="button" class="btn btn-danger btn-sm" @click.stop="abrirModalEliminar(contrato.id)"
+                    :disabled="nivel !== 'ADMIN'">
                     Eliminar
                   </button>
                 </td>
@@ -1549,14 +1554,17 @@ export default {
                 </td>
 
                 <td style="text-align: center;">
-                  <input type="checkbox" :checked="parseInt(String(contrato.estado)) === 1"
-                    @change="contrato.estado = $event.target.checked ? 1 : 0; actualizarEstadoContrato(contrato)"
-                    style="margin-right: 10px; transform: scale(1.5);">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" :id="'flexSwitchCheckChecked-' + contrato.id"
+                      v-model="contrato.estado" @change="actualizarEstadoContrato(contrato)"
+                      :disabled="nivel !== 'ADMIN'" />
+                    <!-- Habilitado visualmente según el booleano -->
+                  </div>
                 </td>
 
               </tr>
               <tr v-if="contratosFiltrados.length === 0">
-                <td colspan="13" class="text-center">No se encontraron contratos que coincidan con el filtro.</td>
+                <td colspan="17" class="text-center">No se encontraron contratos que coincidan con el filtro.</td>
               </tr>
             </tbody>
           </table>

@@ -26,8 +26,9 @@ export default {
       id: '',
       tipo_pago: '',
       descripcion: '',
-
     });
+
+    const nivel = ref(localStorage.getItem('user_nivel'));
 
     const mensaje = ref('');
     const tipoMensaje = ref('');
@@ -250,6 +251,7 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       eliminarRegistroConfirmado,
+      nivel,
     };
   },
 };
@@ -305,7 +307,7 @@ export default {
                 <div class="col-md-auto ms-2">
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
                     Modificar
                   </button>
@@ -331,7 +333,7 @@ export default {
         <table class="table table-striped">
           <thead>
             <tr>
-              
+
               <th>Tipo de Pago</th>
               <th>Descripcion</th>
               <th>Acciones</th>
@@ -339,12 +341,13 @@ export default {
           </thead>
           <tbody>
             <tr v-for="tipo_pago in datos" :key="tipo_pago.id">
-              
+
               <td>{{ tipo_pago.tipo_pago }}</td>
               <td>{{ tipo_pago.descripcion }}</td>
 
               <td>
-                <button @click="abrirModalEliminar(tipo_pago.id)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(tipo_pago.id)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">

@@ -21,6 +21,8 @@ export default {
       habilitado: false, // Inicializado como booleano para el checkbox
     });
 
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
 
 
     const inputText = ref('');
@@ -347,7 +349,9 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       registroAEliminarId,
+      registroAEliminarId,
       mostrarModalEliminar,
+      nivel,
     };
   },
 };
@@ -445,12 +449,12 @@ export default {
                 <div class="col-md-auto ms-2">
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.rut)">
                     Modificar
                   </button>
                 </div>
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="eliminarRegistro">
                     Eliminar
                   </button>
@@ -499,7 +503,8 @@ export default {
               <td>{{ cliente.correo }}</td>
               <td>{{ cliente.habilitado ? 'Sí' : 'No' }}</td>
               <td>
-                <button @click="abrirModalEliminar(cliente.rut)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(cliente.rut)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">

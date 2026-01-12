@@ -30,6 +30,8 @@ export default {
       valor: '',
     });
 
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     const mensaje = ref('');
     const tipoMensaje = ref('');
     const datos = ref([]); // Aquí almacenarás la lista de costos
@@ -280,6 +282,7 @@ export default {
       patenteABuscar,
       buscarCostos,
       totalGastosPatente, // Exportamos la nueva variable para que esté disponible en la plantilla
+      nivel,
     };
   },
 };
@@ -384,7 +387,8 @@ export default {
               <td>{{ costo.descripcion }}</td>
               <td class="negrita" style="text-align: right;">{{ formatearMilesConPunto(costo.valor) }}</td>
               <td>
-                <button @click="abrirModalEliminar(costo.id)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button @click="abrirModalEliminar(costo.id)" class="btn btn-danger btn-sm"
+                  :disabled="nivel !== 'ADMIN'">Eliminar</button>
               </td>
             </tr>
           </tbody>

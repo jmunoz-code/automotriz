@@ -19,6 +19,7 @@ export default {
         const totalPrecioVenta = ref(0);
         const totalCostos = ref(0);
         const totalNeto = ref(0);
+        const totalImpagoReal = ref(0); // Nuevo: Sumatoria de solo cuotas atrasadas
 
         const cargarTotalVentaSinPresupuesto = async () => {
             try {
@@ -46,6 +47,41 @@ export default {
                 totalNeto.value = 0;
             }
         };
+
+        const cargarTotalImpagoReal = async () => {
+             try {
+                 // Usamos el endpoint de cuotas impagas para obtener la suma exacta de lo vencido
+                 // Esto asegura consistencia con la vista de CuotasImpagas.vue
+                 const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/cuotas_impagas/`;
+                 const response = await fetch(apiUrl);
+
+                 if (response.ok) {
+                     const data = await response.json();
+                     // Sumamos 'monto_cuota' de todas las cuotas que vienen en este endpoint (que ya son las atrasadas)
+                     // Ojo: En CuotasImpagas logic se sumaba si dias_atraso > 0.
+                     // El endpoint devuelve una lista plana de cuotas con dias_atraso calculados.
+                     // Filtramos por si acaso el endpoint trajera algo no vencido (aunque su nombre lo indica),
+                     // y sumamos.
+                     
+                     let suma = 0;
+                     data.forEach(cuota => {
+                         if (cuota.dias_atraso > 0) {
+                             suma += parseFloat(cuota.monto_cuota || 0);
+                         }
+                     });
+                     totalImpagoReal.value = suma;
+                 }
+             } catch (error) {
+                 console.error('Error cargando total impago real:', error);
+             }
+        };
+
+        const porcentajeImpagoGeneral = computed(() => {
+            // El 'Saldo Total Pendiente (General)' es 'totalesGeneralesPendientes.value.totalSaldo'
+            const totalPendiente = totalesGeneralesPendientes.value?.totalSaldo || 0;
+            if (totalPendiente === 0) return 0;
+            return ((totalImpagoReal.value / totalPendiente) * 100).toFixed(2);
+        });
 
         const formatearMilesConPunto = (valor) => {
             if (valor === null || valor === undefined || isNaN(parseFloat(valor))) {
@@ -207,6 +243,7 @@ export default {
         onMounted(() => {
             cargarListaDeCuotas();
             cargarTotalVentaSinPresupuesto();
+            cargarTotalImpagoReal();
         });
 
         return {
@@ -223,6 +260,7 @@ export default {
             totalPrecioVenta,
             totalCostos,
             totalNeto,
+            porcentajeImpagoGeneral,
         };
     },
 };
@@ -318,6 +356,10 @@ export default {
                                         <div class="col-md-3">
                                             <p class="mb-1 negrita">Saldo Total **Pendiente** (General):</p>
                                             <h5>$ {{ formatearMilesConPunto(totalesGeneralesPendientes.totalSaldo) }}
+                                                <br>
+                                                <span style="font-size: 1.0em; color: red; font-weight: bold;">
+                                                    ({{ porcentajeImpagoGeneral }}% del Total Pendiente)
+                                                </span>
                                             </h5>
                                         </div>
                                     </div>

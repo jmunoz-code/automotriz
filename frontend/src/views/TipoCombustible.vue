@@ -28,8 +28,9 @@ export default {
       id: '',
       tipo_combustible: '',
       descripcion: '',
-
     });
+
+    const nivel = ref(localStorage.getItem('user_nivel'));
 
     const mensaje = ref('');
     const tipoMensaje = ref('');
@@ -57,7 +58,7 @@ export default {
 
       console.log(formData.value);
       crearRegistro();
-      
+
       cargarListaDeTipo();
     };
 
@@ -103,7 +104,7 @@ export default {
         const tipoData = await obtenerTipo(idABuscar);
         if (tipoData) {
 
-          formData.value.tipo_combustible= tipoData.tipo_combustible;
+          formData.value.tipo_combustible = tipoData.tipo_combustible;
           formData.value.descripcion = tipoData.descripcion;
 
         } else {
@@ -131,7 +132,7 @@ export default {
           const data = await response.json();
           mostrarMensaje('Tipo Combustible creado exitosamente!', 'success');
           formData.value = { id: '', detalle: '' };
-          cargarListaDeTipo(); 
+          cargarListaDeTipo();
         } else {
           const errorData = await response.json();
           mostrarMensaje(`Error al crear tipo combustible: ${errorData.message || response.statusText}`, 'error');
@@ -143,8 +144,8 @@ export default {
       } finally {
         setTimeout(limpiarMensaje, 3000);
       }
-    }; 
-        
+    };
+
     const modificarRegistro = async (tipo) => {
       try {
         const apiUrl = `${import.meta.env.VITE_API_URL}tipoCombustible/${tipo}/`;
@@ -160,7 +161,7 @@ export default {
         if (response.ok) {
           const data = await response.json();
           mostrarMensaje('Tipo Combustible modificado exitosamente!', 'success');
-          formData.value = { tipo_combustible: '',  descripcion: '' };
+          formData.value = { tipo_combustible: '', descripcion: '' };
           cargarListaDeTipo(); // Recargar la lista después de modificar
         } else {
           const errorData = await response.json();
@@ -255,6 +256,7 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       eliminarRegistroConfirmado,
+      nivel,
     };
   },
 };
@@ -275,7 +277,7 @@ export default {
           <div class="mb-3 row align-items-center">
             <label for="if" class="col-md-2 col-form-label negrita">Tipo Combustible</label>
             <div class="col-md-3">
-              <input type="text" class="form-control form-control-sm negrita" id="id" v-model="formData.id"/>
+              <input type="text" class="form-control form-control-sm negrita" id="id" v-model="formData.id" />
             </div>
             <div class="col-md-auto ms-4">
               <button type="button" class="btn btn-secondary btn-sm" @click="cargarDatosTipo(formData.id)">
@@ -283,46 +285,46 @@ export default {
               </button>
             </div>
           </div>
-           <div class="card">
+          <div class="card">
             <div class="card-header">
               <div class="card-title" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);"> Gestión
                 de Tipos de Combustible</div>
             </div>
             <div class="card-body left">
 
-    <div class="mb-3">
-            <label for="tipo_combustible" class="form-label negrita">Código Tipo Combustible</label>
-            <input type="text" :size="5" class="form-control form-control-sm" id="tipo_combustible"
-              v-model="formData.tipo_combustible" required />
+              <div class="mb-3">
+                <label for="tipo_combustible" class="form-label negrita">Código Tipo Combustible</label>
+                <input type="text" :size="5" class="form-control form-control-sm" id="tipo_combustible"
+                  v-model="formData.tipo_combustible" required />
+              </div>
+
+
+              <div class="mb-3">
+                <label for="descripcion" class="form-label negrita">Descripción</label>
+                <input type="text" class="form-control form-control-sm" id="descripcion" v-model="formData.descripcion"
+                  required />
+              </div>
+              <div class="d-flex justify-content-center">
+                <div class="col-md-auto ms-2">
+                  <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
+                </div>
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
+                  <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
+                    Modificar
+                  </button>
+                </div>
+                <div class="col-md-auto ms-2">
+                  <button type="button" class="btn btn-sm btn-secondary" @click="limpiarFormulario">
+                    Limpiar
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
           </div>
 
-          
-          <div class="mb-3">
-            <label for="descripcion" class="form-label negrita">Descripción</label>
-            <input type="text" class="form-control form-control-sm" id="descripcion" v-model="formData.descripcion"
-              required />
-          </div>
-          <div class="d-flex justify-content-center">
-            <div class="col-md-auto ms-2">
-              <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
-            </div>
-            <div class="col-md-auto ms-2">
-              <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
-                Modificar
-              </button>
-            </div>
-            <div class="col-md-auto ms-2">
-              <button type="button" class="btn btn-sm btn-secondary" @click="limpiarFormulario">
-                Limpiar
-              </button>
-            </div>
 
-           </div>
-           
-            </div>
-          </div>
-
-          
         </form>
 
         <div v-if="mensaje" class="mt-3 alert"
@@ -330,7 +332,8 @@ export default {
           {{ mensaje }}
         </div>
 
-        <h3 class="mt-4" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Lista Tipo de Combustible
+        <h3 class="mt-4" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Lista Tipo de
+          Combustible
         </h3>
         <table class="table table-striped">
           <thead>
@@ -346,7 +349,8 @@ export default {
               <td>{{ tipo_combustible.descripcion }}</td>
 
               <td>
-                <button @click="abrirModalEliminar(tipo_combustible.id)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(tipo_combustible.id)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">
@@ -428,6 +432,7 @@ export default {
 .modal-footer button {
   margin-left: 10px;
 }
+
 .left {
   padding-left: 10px;
 }

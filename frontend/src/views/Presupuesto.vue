@@ -61,6 +61,9 @@ export default {
     const listaVehiculos = ref([]); // Lista de vehículos para la tabla
     const vendedores = ref([]);
 
+    // Nivel del usuario desde localStorage
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     // Variables for the deletion modal
     const registroAEliminarId = ref(null);
     const mostrarModalEliminar = ref(false);
@@ -890,8 +893,8 @@ export default {
       cargarListaDeContratos();
       cargarListaAutomoviles();
       obtenerVendedores();
-       // NUEVO: Asignar la fecha actual al campo 'fecha' cuando se monta el componente
-  formData.value.fecha = getFormattedDate();
+      // NUEVO: Asignar la fecha actual al campo 'fecha' cuando se monta el componente
+      formData.value.fecha = getFormattedDate();
     });
 
     // Return variables and functions that will be available in the template
@@ -933,7 +936,8 @@ export default {
       seleccionarAutomovil,
       handleSearchPatente, // Exponer la nueva función de búsqueda
       obtenerVendedores,
-      vendedores
+      vendedores,
+      nivel,
 
     };
   },
@@ -944,7 +948,7 @@ export default {
 
   <div style="text-align: center">
     <img src="/img/core-img/logo.png" alt="logo" style="width:280px; height:100px;" />
-  
+
   </div>
   <div class="page-container">
     <br></br>
@@ -952,16 +956,15 @@ export default {
 
       <h3>Cotización</h3>
       <br>
-      <div style="text-align: right; font-weight: bold;">{{formData.fecha}}</div>
+      <div style="text-align: right; font-weight: bold;">{{ formData.fecha }}</div>
       <br>
       <br>
 
       <div class="input-section">
         <label for="rut">RUT del Cliente:</label>
-        <input type="text" id="rut" v-model="formData.rut"
-          placeholder="Ej: 12345678-9" class="form-control">
+        <input type="text" id="rut" v-model="formData.rut" placeholder="Ej: 12345678-9" class="form-control">
       </div>
-      
+
       <div class="input-section">
         <label for="nombresInput">Nombres del Cliente:</label>
         <input type="text" id="nombresInput" v-model="formData.nombres" placeholder="Ej: Juan Pérez"
@@ -1065,6 +1068,11 @@ export default {
               Seleccione Opción de Pago:
             </td>
             <td class="data-col">
+              <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
+                <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
+                  Modificar
+                </button>
+              </div>
               <div class="radio-group">
                 <input type="radio" value="contado" v-model="formData.paymentOption">
                 &nbsp; Contado
@@ -1155,7 +1163,8 @@ export default {
 
             <td class="text-center">
 
-              <button @click="abrirModalEliminar(contrato.id)" class="btn btn-sm btn-danger">Eliminar</button>
+              <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(contrato.id)"
+                class="btn btn-sm btn-danger">Eliminar</button>
             </td>
           </tr>
         </tbody>

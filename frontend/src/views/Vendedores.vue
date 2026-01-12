@@ -35,6 +35,9 @@ export default {
 
     const mensaje = ref('');
     const tipoMensaje = ref('');
+
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     const datos = ref([]); // Aquí almacenarás la lista de vendedores
 
     const registroAEliminarId = ref(null);
@@ -344,6 +347,7 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       eliminarRegistroConfirmado,
+      nivel,
     };
   },
 };
@@ -424,7 +428,7 @@ export default {
               </div>
               <div class="d-flex justify-content-center">
                 <div class="col-md-auto ms-2">
-                  <button type="submit" class="btn btn-sm btn-secondary">
+                  <button v-if="nivel === 'ADMIN' || !formData.rut" type="submit" class="btn btn-sm btn-secondary">
                     {{ formData.rut ? 'Actualizar' : 'Crear' }} </button>
                 </div>
 
@@ -467,7 +471,8 @@ export default {
               <td>{{ vendedor.usuario }}</td>
               <td>{{ vendedor.nivel }}</td>
               <td>
-                <button @click="abrirModalEliminar(vendedor.rut)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(vendedor.rut)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">

@@ -37,8 +37,9 @@ export default {
       revision_tecnica_al_dia: false,
       permiso_circulacion: false,
       seguro_vigente: false,
-
     });
+
+    const nivel = ref(localStorage.getItem('user_nivel'));
 
     const opcionestipo_vehiculo_id = ref([]);
     const opcionestipo_marca_id = ref([]);
@@ -665,7 +666,10 @@ export default {
       datos,
       limpiarFormatoNumerico,
       formatearMilesConPunto,
-      obtenerTotalGastosPorPatente
+      limpiarFormatoNumerico,
+      formatearMilesConPunto,
+      obtenerTotalGastosPorPatente,
+      nivel,
     };
   },
 };
@@ -912,13 +916,13 @@ export default {
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
 
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.patente)">
                     Modificar
                   </button>
                 </div>
 
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="abrirModalEliminar(formData.patente)">
                     Eliminar
                   </button>
@@ -975,7 +979,8 @@ export default {
 
 
               <td>
-                <button @click="abrirModalEliminar(vehiculo.patente)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(vehiculo.patente)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">

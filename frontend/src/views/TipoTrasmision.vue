@@ -27,6 +27,8 @@ export default {
       descripcion: '',
     });
 
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     const mensaje = ref('');
     const tipoMensaje = ref('');
     const datos = ref([]); // Aquí almacenarás la lista de costos
@@ -51,7 +53,7 @@ export default {
         mostrarMensaje('Por favor, ingrese Descripcion.', 'error');
         return;
       }
-      
+
       crearRegistro();
       cargarListaDeTipo();
     };
@@ -250,6 +252,7 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       eliminarRegistroConfirmado,
+      nivel,
     };
   },
 };
@@ -301,7 +304,7 @@ export default {
                 <div class="col-md-auto ms-2">
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
                     Modificar
                   </button>
@@ -326,7 +329,7 @@ export default {
         <table class="table table-striped">
           <thead>
             <tr>
-              
+
               <th>ID Transmisión</th>
               <th>Descripción</th>
               <th>Acciones</th>
@@ -334,12 +337,13 @@ export default {
           </thead>
           <tbody>
             <tr v-for="tipo_transmision in datos" :key="tipo_transmision.id">
-              
+
               <td>{{ tipo_transmision.tipo_transmision }}</td>
               <td>{{ tipo_transmision.descripcion }}</td>
 
               <td>
-                <button @click="abrirModalEliminar(tipo_transmision.id)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(tipo_transmision.id)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">
@@ -425,6 +429,7 @@ export default {
 .left {
   padding-left: 10px;
 }
+
 .texto-verde {
   color: green;
 }
@@ -432,6 +437,4 @@ export default {
 .texto-rojo {
   color: red;
 }
-
-
 </style>

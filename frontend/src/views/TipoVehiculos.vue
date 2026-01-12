@@ -26,14 +26,10 @@ export default {
       id: '',
       tipo_vehiculo: '',
       descripcion: '',
-
     });
 
-    const mensaje = ref('');
-    const tipoMensaje = ref('');
-    const datos = ref([]); // Aquí almacenarás la lista de costos
+    const nivel = ref(localStorage.getItem('user_nivel'));
 
-    const registroAEliminarId = ref(null);
     const mostrarModalEliminar = ref(false);
 
     const abrirModalEliminar = (id) => {
@@ -256,6 +252,7 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       eliminarRegistroConfirmado,
+      nivel,
     };
   },
 };
@@ -307,7 +304,7 @@ export default {
                 <div class="col-md-auto ms-2">
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
                     Modificar
                   </button>
@@ -328,11 +325,12 @@ export default {
           {{ mensaje }}
         </div>
 
-        <h3 class="mt-4" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Lista Tipo Vehículos</h3>
+        <h3 class="mt-4" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Lista Tipo Vehículos
+        </h3>
         <table class="table table-striped">
           <thead>
             <tr>
-              
+
               <th>ID Vehículo</th>
               <th>Descripción</th>
               <th>Acciones</th>
@@ -340,12 +338,13 @@ export default {
           </thead>
           <tbody>
             <tr v-for="tipo_vehiculo in datos" :key="tipo_vehiculo.id">
-              
+
               <td>{{ tipo_vehiculo.tipo_vehiculo }}</td>
               <td>{{ tipo_vehiculo.descripcion }}</td>
 
               <td>
-                <button @click="abrirModalEliminar(tipo_vehiculo.id)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(tipo_vehiculo.id)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">

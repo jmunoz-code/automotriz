@@ -19,6 +19,9 @@ export default {
     const mensaje = ref('');
     const tipoMensaje = ref('');
 
+    // Nivel del usuario
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     const filtroRutCuota = ref('');
     const filtroPatenteCuota = ref('');
 
@@ -27,24 +30,24 @@ export default {
     const cuotaParaEditar = ref({});
 
     const formatearMilesConPunto = (valor) => {
-    if (valor === null || valor === undefined) {
-      return '';
-    }
-    
-    // 1. Convertir a número.
-    const num = parseFloat(valor); 
-    
-    if (isNaN(num)) {
-      return '';
-    }
-    
-    // 2. Aplicar el redondeo al entero más cercano aquí:
-    const numRedondeado = Math.round(num); // <-- ¡Aquí se redondea!
-    
-    // 3. Aplicar el formato.
-    const formatter = new Intl.NumberFormat('de-DE');
-    return formatter.format(numRedondeado); // Usamos el número redondeado
-};
+      if (valor === null || valor === undefined) {
+        return '';
+      }
+
+      // 1. Convertir a número.
+      const num = parseFloat(valor);
+
+      if (isNaN(num)) {
+        return '';
+      }
+
+      // 2. Aplicar el redondeo al entero más cercano aquí:
+      const numRedondeado = Math.round(num); // <-- ¡Aquí se redondea!
+
+      // 3. Aplicar el formato.
+      const formatter = new Intl.NumberFormat('de-DE');
+      return formatter.format(numRedondeado); // Usamos el número redondeado
+    };
     const formatearFecha = (fechaISO) => {
       if (!fechaISO) return '';
       const date = new Date(fechaISO);
@@ -150,7 +153,7 @@ export default {
         });
         if (response.ok) {
           mostrarMensaje('Cuota eliminada exitosamente.', 'success');
-         cargarListaDeCuotas();
+          cargarListaDeCuotas();
         } else {
           const errorData = await response.json();
           console.error('Error eliminando la cuota:', errorData.message || response.statusText);
@@ -191,10 +194,10 @@ export default {
     // Ejemplo de la función que podría disparar la actualización
     const grabarEdicionCuota = async (cuotaId, nuevoMonto) => {
       console.log('Modifica:');
-      
+
       try {
         const url = `${import.meta.env.VITE_API_URL}pagocuotas/modificar_cuota/${cuotaId}/`;
-        
+
         const response = await fetch(url, {
           method: 'PATCH',
           headers: {
@@ -214,7 +217,7 @@ export default {
 
         // Opcional: Recargar los datos de la lista para mostrar el cambio
         cargarListaDeCuotas();
-         
+
 
       } catch (error) {
         console.error('Error:', error);
@@ -318,6 +321,7 @@ export default {
       eliminarUnaCuota,
       cuotasConCalculoDeCapital,
       grabarEdicionCuota,
+      nivel,
     };
   },
 };
@@ -350,7 +354,7 @@ export default {
               {{ isLoading ? 'Cargando...' : 'Buscar Cuotas' }}
             </button>
             <button class="btn btn-danger btn-sm" @click="eliminarCuotas"
-              :disabled="isLoading || !filtroRutCuota || !filtroPatenteCuota">
+              :disabled="isLoading || !filtroRutCuota || !filtroPatenteCuota || nivel !== 'ADMIN'">
               <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               {{ isLoading ? 'Eliminando...' : 'Eliminar Cuotas' }}
             </button>
@@ -403,17 +407,19 @@ export default {
                 <td style="text-align: center">{{ cuota.patente }}</td>
                 <td style="text-align: center">{{ cuota.numero_cuota }}</td>
                 <td style="text-align: center">{{ formatearFecha(cuota.fecha_vencimiento) }}</td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_a_financiar_calculado,2) }}</td>
+                <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_a_financiar_calculado, 2) }}</td>
                 <td style="text-align: center">{{ cuota.interes_mensual }}</td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.interes_calculado,2) }}</td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital,2) }}</td>
-               <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital + cuota.interes_calculado, 2) }}</td>
-                
+                <td style="text-align: center">{{ formatearMilesConPunto(cuota.interes_calculado, 2) }}</td>
+                <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital, 2) }}</td>
+                <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital + cuota.interes_calculado,
+                  2) }}</td>
+
                 <td style="text-align: center">
 
 
                   <input type="number" v-model="cuota.monto_cuota"
-                    @blur="grabarEdicionCuota(cuota.id, cuota.monto_cuota)" class="form-control form-control-sm" style="width: 120px; text-align: center;" />
+                    @blur="grabarEdicionCuota(cuota.id, cuota.monto_cuota)" class="form-control form-control-sm"
+                    style="width: 120px; text-align: center;" :disabled="nivel !== 'ADMIN'" />
 
 
                 </td>
@@ -429,7 +435,7 @@ export default {
                 <td>
                   <textarea class="form-control form-control-sm" v-model="cuota.observacion"
                     @blur="actualizarObservacion(cuota.id, cuota.observacion)" placeholder="Agregar observación"
-                    rows="1">
+                    rows="1" :disabled="nivel !== 'ADMIN'">
                   </textarea>
                 </td>
                 <td style="width: 310px;">
@@ -441,7 +447,8 @@ export default {
                     style="margin-right: 3px;">
                     Abonos
                   </button>
-                  <button class="btn btn-danger btn-sm" @click.stop="eliminarUnaCuota(cuota.id)">
+                  <button class="btn btn-danger btn-sm" @click.stop="eliminarUnaCuota(cuota.id)"
+                    :disabled="nivel !== 'ADMIN'">
                     Eliminar
                   </button>
                 </td>

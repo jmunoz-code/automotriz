@@ -19,8 +19,9 @@ export default {
       id: '',
       tipo_marca: '',
       descripcion: '',
-
     });
+
+    const nivel = ref(localStorage.getItem('user_nivel'));
 
     const mensaje = ref('');
     const tipoMensaje = ref('');
@@ -250,6 +251,7 @@ export default {
       cerrarModalEliminar,
       modificarRegistro,
       eliminarRegistroConfirmado,
+      nivel,
     };
   },
 };
@@ -301,7 +303,7 @@ export default {
                 <div class="col-md-auto ms-2">
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
-                <div class="col-md-auto ms-2">
+                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
                     Modificar
                   </button>
@@ -327,7 +329,7 @@ export default {
         <table class="table table-striped">
           <thead>
             <tr>
-              
+
               <th>Código Tipo Marca</th>
               <th>Descripción</th>
               <th>Acciones</th>
@@ -335,12 +337,13 @@ export default {
           </thead>
           <tbody>
             <tr v-for="tipo_marca in datos" :key="tipo_marca.id">
-              
+
               <td>{{ tipo_marca.tipo_marca }}</td>
               <td>{{ tipo_marca.descripcion }}</td>
 
               <td>
-                <button @click="abrirModalEliminar(tipo_marca.id)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(tipo_marca.id)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">

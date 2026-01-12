@@ -30,6 +30,8 @@ export default {
       interes: '',
     });
 
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     const mensaje = ref('');
     const tipoMensaje = ref('');
     const datos = ref([]); // Aquí almacenarás la lista de costos
@@ -56,13 +58,13 @@ export default {
         mostrarMensaje('Por favor, ingrese precio de compra.', 'error');
         return;
       }
-    
+
       if (!formData.value.interes.trim()) {
         mostrarMensaje('Por favor, ingrese valor.', 'error');
         return;
       }
 
-        if (!formData.value.margen.trim()) {
+      if (!formData.value.margen.trim()) {
         mostrarMensaje('Por favor, ingrese valor.', 'error');
         return;
       }
@@ -140,7 +142,7 @@ export default {
         if (response.ok) {
           const data = await response.json();
           mostrarMensaje('Valorizacion creada exitosamente!', 'success');
-          formData.value = { patente : '', costo_asociado : '', precio_compra : '', precio_venta : '', interes : '' };
+          formData.value = { patente: '', costo_asociado: '', precio_compra: '', precio_venta: '', interes: '' };
           cargarListaDeCostos(); // Recargar la lista después de crear
         } else {
           const errorData = await response.json();
@@ -234,6 +236,7 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       eliminarRegistroConfirmado,
+      nivel,
     };
   },
 };
@@ -262,7 +265,7 @@ export default {
             </div>
 
           </div>
-           
+
           <div class="mb-3">
             <label for="precio_compra" class="form-label negrita">Precio Compra</label>
             <input type="number" class="form-control form-control-sm" id="precio_compra"
@@ -321,7 +324,7 @@ export default {
               <th>Interes Cuota</th>
               <th>Valor Total</th>
             </tr>
-  
+
           </thead>
           <tbody>
             <tr v-for="costo in datos" :key="costo.id">
@@ -333,7 +336,8 @@ export default {
               <td>{{ costo.interes }}</td>
               <td>{{ costo.valor_total }}</td>
               <td>
-                <button @click="abrirModalEliminar(costo.id)" class="btn btn-danger btn-sm">Eliminar</button>
+                <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(costo.id)"
+                  class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
             <tr v-if="datos.length === 0">

@@ -11,6 +11,9 @@ export default {
   setup() {
     const listaCuotas = ref([]); // Contendrá los registros de detallePagoCuotas
     const isLoading = ref(false);
+
+    const nivel = ref(localStorage.getItem('user_nivel'));
+
     const mensaje = ref('');
     const tipoMensaje = ref('');
 
@@ -111,41 +114,41 @@ export default {
     // --- NUEVAS FUNCIONES PARA ELIMINAR ABONO ---
 
     const confirmarEliminarAbono = (idAbono) => {
-        if (confirm('¿Estás seguro de que quieres eliminar este abono? Esta acción es irreversible.')) {
-            eliminarAbono(idAbono);
-        }
+      if (confirm('¿Estás seguro de que quieres eliminar este abono? Esta acción es irreversible.')) {
+        eliminarAbono(idAbono);
+      }
     };
 
     const eliminarAbono = async (idAbono) => {
-        isLoading.value = true;
-        try {
-            // Asumiendo que tu endpoint de eliminación es:
-            // VITE_API_URL/detallepago/{id_abono}/
-            const apiUrl = `${import.meta.env.VITE_API_URL}detallepago/${idAbono}/`;
+      isLoading.value = true;
+      try {
+        // Asumiendo que tu endpoint de eliminación es:
+        // VITE_API_URL/detallepago/{id_abono}/
+        const apiUrl = `${import.meta.env.VITE_API_URL}detallepago/${idAbono}/`;
 
-            console.log('DEBUG: Eliminando abono desde:', apiUrl);
+        console.log('DEBUG: Eliminando abono desde:', apiUrl);
 
-            const response = await fetch(apiUrl, {
-                method: 'DELETE', // Especificamos el método DELETE
-            });
+        const response = await fetch(apiUrl, {
+          method: 'DELETE', // Especificamos el método DELETE
+        });
 
-            if (response.ok) {
-                // Si la eliminación fue exitosa (ej. 204 No Content)
-                mostrarMensaje('Abono eliminado exitosamente.', 'success');
-                // Recargar la lista de cuotas para reflejar el cambio
-                await cargarListaDeCuotas(); 
-            } else {
-                // Manejar errores en la eliminación
-                const errorData = await response.json(); // Intentar obtener el mensaje de error del backend
-                console.error('Error eliminando el abono:', response.status, response.statusText, errorData);
-                mostrarMensaje(`Error al eliminar abono: ${errorData.detail || errorData.message || response.statusText}`, 'error');
-            }
-        } catch (error) {
-            console.error('Error de conexión al eliminar el abono:', error);
-            mostrarMensaje('Error de conexión con el servidor al intentar eliminar.', 'error');
-        } finally {
-            isLoading.value = false;
+        if (response.ok) {
+          // Si la eliminación fue exitosa (ej. 204 No Content)
+          mostrarMensaje('Abono eliminado exitosamente.', 'success');
+          // Recargar la lista de cuotas para reflejar el cambio
+          await cargarListaDeCuotas();
+        } else {
+          // Manejar errores en la eliminación
+          const errorData = await response.json(); // Intentar obtener el mensaje de error del backend
+          console.error('Error eliminando el abono:', response.status, response.statusText, errorData);
+          mostrarMensaje(`Error al eliminar abono: ${errorData.detail || errorData.message || response.statusText}`, 'error');
         }
+      } catch (error) {
+        console.error('Error de conexión al eliminar el abono:', error);
+        mostrarMensaje('Error de conexión con el servidor al intentar eliminar.', 'error');
+      } finally {
+        isLoading.value = false;
+      }
     };
 
     // --- FIN NUEVAS FUNCIONES ---
@@ -182,6 +185,7 @@ export default {
       formatearFecha,
       mostrarMensaje,
       confirmarEliminarAbono, // Exponer la nueva función
+      nivel,
     };
   },
 };
@@ -199,46 +203,28 @@ export default {
         <div class="row mb-4">
           <div class="col-md-4">
             <label for="filtroRutCuota" class="form-label negrita">RUT Cliente (Requerido):</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              id="filtroRutCuota"
-              v-model.lazy="filtroRutCuota"
-              placeholder="Ej: 12.345.678-9"
-            />
+            <input type="text" class="form-control form-control-sm" id="filtroRutCuota" v-model.lazy="filtroRutCuota"
+              placeholder="Ej: 12.345.678-9" />
           </div>
           <div class="col-md-4">
             <label for="filtroPatenteCuota" class="form-label negrita">Patente (Requerido):</label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              id="filtroPatenteCuota"
-              v-model.lazy="filtroPatenteCuota"
-              placeholder="Ej: ABCD12"
-            />
+            <input type="text" class="form-control form-control-sm" id="filtroPatenteCuota"
+              v-model.lazy="filtroPatenteCuota" placeholder="Ej: ABCD12" />
           </div>
           <div class="col-md-4 d-flex align-items-end justify-content-between">
-            <button
-              class="btn btn-primary btn-sm me-2"
-              @click="cargarListaDeCuotas"
-              :disabled="isLoading || !filtroRutCuota || !filtroPatenteCuota"
-            >
+            <button class="btn btn-primary btn-sm me-2" @click="cargarListaDeCuotas"
+              :disabled="isLoading || !filtroRutCuota || !filtroPatenteCuota">
               <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               {{ isLoading ? 'Buscando...' : 'Buscar Abonos' }}
             </button>
           </div>
         </div>
 
-        <div
-          v-if="mensaje"
-          class="alert"
-          :class="{
-            'alert-success': tipoMensaje === 'success',
-            'alert-danger': tipoMensaje === 'error',
-            'alert-info': tipoMensaje === 'info',
-          }"
-          role="alert"
-        >
+        <div v-if="mensaje" class="alert" :class="{
+          'alert-success': tipoMensaje === 'success',
+          'alert-danger': tipoMensaje === 'error',
+          'alert-info': tipoMensaje === 'info',
+        }" role="alert">
           {{ mensaje }}
         </div>
 
@@ -251,13 +237,17 @@ export default {
                 <th style="text-align: center"># Cuota</th>
                 <th style="text-align: center">Monto Abono</th>
                 <th style="text-align: center">Fecha Abono</th>
-                <th style="text-align: center">Acciones</th> </tr>
+                <th style="text-align: center">Acciones</th>
+              </tr>
             </thead>
             <tbody>
               <tr v-if="cuotasFiltradas.length === 0 && !isLoading">
-                <td colspan="6" class="text-center">No se encontraron abonos que coincidan con los criterios de búsqueda.</td> </tr>
+                <td colspan="6" class="text-center">No se encontraron abonos que coincidan con los criterios de
+                  búsqueda.</td>
+              </tr>
               <tr v-else-if="isLoading">
-                 <td colspan="6" class="text-center">Cargando abonos...</td> </tr>
+                <td colspan="6" class="text-center">Cargando abonos...</td>
+              </tr>
               <tr v-for="abono in cuotasFiltradas" :key="abono.id" style="cursor: default;">
                 <td style="text-align: center">{{ abono.rut }}</td>
                 <td style="text-align: center">{{ abono.patente }}</td>
@@ -265,7 +255,8 @@ export default {
                 <td style="text-align: center">{{ formatearMilesConPunto(abono.monto_cuota) }}</td>
                 <td style="text-align: center">{{ formatearFecha(abono.fecha_abono) }}</td>
                 <td style="text-align: center">
-                  <button class="btn btn-danger btn-sm" @click="confirmarEliminarAbono(abono.id)">
+                  <button v-if="nivel === 'ADMIN'" class="btn btn-danger btn-sm"
+                    @click="confirmarEliminarAbono(abono.id)">
                     Eliminar
                   </button>
                 </td>
@@ -290,14 +281,15 @@ export default {
 }
 
 .custom-table {
-  min-width: 1000px; /* Ajusta este valor si tus columnas son más anchas */
+  min-width: 1000px;
+  /* Ajusta este valor si tus columnas son más anchas */
 }
 
 /* Estilo para el spinner */
 .spinner-border-sm {
-    width: 1rem;
-    height: 1rem;
-    margin-right: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
 }
 
 /* Cursor por defecto para filas que no son clicables */

@@ -1,6 +1,6 @@
 <template>
     <!-- Asumo que usas tu HeaderAdmin -->
-    <Header></Header> 
+    <Header></Header>
     <div class="container mt-3">
         <div class="card shadow-sm mt-3 mb-3">
             <div class="card-header" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">
@@ -11,8 +11,9 @@
                 <!-- Formulario para agregar/modificar -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <div class="card-title" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">
-                           {{ esEdicion ? 'Modificando Gasto' : 'Ingresar Nuevo Gasto' }}
+                        <div class="card-title"
+                            style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">
+                            {{ esEdicion ? 'Modificando Gasto' : 'Ingresar Nuevo Gasto' }}
                         </div>
                     </div>
                     <div class="card-body">
@@ -26,7 +27,8 @@
                                 <div class="col-md-5">
                                     <label for="descripcion-gasto" class="form-label negrita">Descripción</label>
                                     <input type="text" class="form-control form-control-sm" id="descripcion-gasto"
-                                        v-model="formData.descripcion" placeholder="Ej: Luz, Agua, Gastos Comunes" required />
+                                        v-model="formData.descripcion" placeholder="Ej: Luz, Agua, Gastos Comunes"
+                                        required />
                                 </div>
                                 <div class="col-md-3">
                                     <label for="valor-gasto" class="form-label negrita">Valor (CLP)</label>
@@ -36,7 +38,8 @@
                             </div>
                             <div class="row mt-3">
                                 <div class="col-12 d-flex justify-content-end">
-                                    <button v-if="esEdicion" type="button" class="btn btn-sm btn-secondary me-2" @click="limpiarFormulario">
+                                    <button v-if="esEdicion" type="button" class="btn btn-sm btn-secondary me-2"
+                                        @click="limpiarFormulario">
                                         Cancelar Edición
                                     </button>
                                     <button type="submit" class="btn btn-sm btn-success">
@@ -78,11 +81,13 @@
                                 <td>{{ gasto.descripcion }}</td>
                                 <td class="text-end">{{ formatValor(gasto.valor) }}</td>
                                 <td class="text-center">
-                                    <button @click="iniciarEdicion(gasto)" class="btn btn-warning btn-sm me-2">
+                                    <button v-if="nivel === 'ADMIN'" @click="iniciarEdicion(gasto)"
+                                        class="btn btn-warning btn-sm me-2">
                                         Modificar
                                     </button>
                                     &nbsp;
-                                    <button @click="eliminarGasto(gasto.id)" class="btn btn-danger btn-sm">
+                                    <button v-if="nivel === 'ADMIN'" @click="eliminarGasto(gasto.id)"
+                                        class="btn btn-danger btn-sm">
                                         Eliminar
                                     </button>
                                 </td>
@@ -115,6 +120,8 @@ const formData = ref({
     valor: 0
 });
 
+const nivel = ref(localStorage.getItem('user_nivel'));
+
 const API_URL = `${import.meta.env.VITE_API_URL}gastos/`;
 
 // --- Funciones de Mensajes ---
@@ -146,7 +153,7 @@ async function cargarGastos() {
             // El error "No autenticado" ya no debería ocurrir
             throw new Error('Error al cargar los gastos.');
         }
-        
+
         listaGastos.value = await response.json();
 
     } catch (error) {
@@ -199,7 +206,7 @@ async function guardarGasto() {
             esEdicion.value ? 'Gasto actualizado!' : 'Gasto creado!',
             'success'
         );
-        
+
         limpiarFormulario();
         await cargarGastos(); // Recargar la lista
 
@@ -287,7 +294,7 @@ function formatValor(valor) {
     return new Intl.NumberFormat('es-CL', {
         style: 'currency',
         currency: 'CLP',
-        maximumFractionDigits: 0 
+        maximumFractionDigits: 0
     }).format(num);
 }
 
@@ -304,20 +311,25 @@ onMounted(() => {
     font-weight: bold;
     font-size: small;
 }
+
 .table-sm th,
 .table-sm td {
     font-size: 0.85rem;
     padding: 0.4rem;
     vertical-align: middle;
 }
+
 .form-label {
     font-weight: 500;
 }
+
 .btn-sm {
     font-size: 0.8rem;
     padding: 0.25rem 0.5rem;
 }
-.btn-warning, .btn-danger {
+
+.btn-warning,
+.btn-danger {
     color: white;
 }
 </style>

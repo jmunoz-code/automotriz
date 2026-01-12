@@ -16,6 +16,9 @@ export default {
         const mensaje = ref('');
         const tipoMensaje = ref('');
 
+        // Nivel del usuario
+        const nivel = ref(localStorage.getItem('user_nivel'));
+
         // Define la URL de la nueva API (basado en tu config de Django)
         const API_URL_TIPOS = `${import.meta.env.VITE_API_URL}tipos-arriendo/`;
 
@@ -37,9 +40,9 @@ export default {
                     throw new Error('Error al cargar los tipos de arriendo');
                 }
                 const data = await response.json();
-                
+
                 // El ViewSet de Django devuelve una lista de objetos directamente
-                listaTipos.value = data; 
+                listaTipos.value = data;
             } catch (error) {
                 mostrarMensaje(error.message || 'Error de conexión', 'error');
             }
@@ -53,7 +56,7 @@ export default {
             }
             // <-- NUEVA VALIDACIÓN para la comisión -->
             if (nuevoTipoComision.value === null || nuevoTipoComision.value < 0 || nuevoTipoComision.value > 99.9) {
-                 mostrarMensaje('La comisión debe ser un número entre 0.0 y 99.9.', 'error');
+                mostrarMensaje('La comisión debe ser un número entre 0.0 y 99.9.', 'error');
                 return;
             }
 
@@ -121,13 +124,14 @@ export default {
             tipoMensaje,
             guardarNuevoTipo,
             eliminarTipo,
+            nivel,
         };
     },
 };
 </script>
 
 <template>
-     <Header></Header>
+    <Header></Header>
 
     <div class="container mt-3">
         <div class="card shadow-sm mt-3 mb-3">
@@ -139,7 +143,8 @@ export default {
                 <!-- Formulario para agregar -->
                 <div class="card mb-4">
                     <div class="card-header">
-                        <div class="card-title" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">
+                        <div class="card-title"
+                            style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">
                             Ingresar Nuevo Tipo de Arriendo
                         </div>
                     </div>
@@ -150,18 +155,18 @@ export default {
                                 <div class="col-md-6">
                                     <label for="nuevo_tipo" class="form-label negrita">Nombre del Tipo</label>
                                     <input type="text" class="form-control form-control-sm" id="nuevo_tipo"
-                                        v-model="nuevoTipoNombre" required placeholder="Ej: Privado, Airbnb, Booking.com"/>
+                                        v-model="nuevoTipoNombre" required
+                                        placeholder="Ej: Privado, Airbnb, Booking.com" />
                                 </div>
 
                                 <!-- --- NUEVO INPUT PARA COMISIÓN --- -->
                                 <div class="col-md-3">
                                     <label for="nuevo_comision" class="form-label negrita">Comisión (%)</label>
                                     <input type="number" class="form-control form-control-sm" id="nuevo_comision"
-                                        v-model.number="nuevoTipoComision" required 
-                                        step="0.1" min="0.0" max="99.9" />
+                                        v-model.number="nuevoTipoComision" required step="0.1" min="0.0" max="99.9" />
                                 </div>
                                 <!-- --- FIN NUEVO INPUT --- -->
-                                
+
                                 <!-- --- CAMBIO DE LAYOUT (col-md-4 a col-md-3) --- -->
                                 <div class="col-md-3 d-flex align-items-end">
                                     <button type="submit" class="btn btn-sm btn-success w-100">
@@ -199,7 +204,8 @@ export default {
                                 <td>{{ tipo.nombre }}</td>
                                 <td>{{ tipo.comision }}%</td> <!-- <-- NUEVO DATO -->
                                 <td class="text-end">
-                                    <button @click="eliminarTipo(tipo.id)" class="btn btn-danger btn-sm">
+                                    <button @click="eliminarTipo(tipo.id)" class="btn btn-danger btn-sm"
+                                        :disabled="nivel !== 'ADMIN'">
                                         Eliminar
                                     </button>
                                 </td>
@@ -215,7 +221,7 @@ export default {
             </div>
         </div>
     </div>
- 
+
 </template>
 
 <style scoped>
@@ -224,10 +230,10 @@ export default {
     font-weight: bold;
     font-size: small;
 }
+
 .table-sm th,
 .table-sm td {
     font-size: 0.85rem;
     padding: 0.4rem;
 }
-
 </style>
