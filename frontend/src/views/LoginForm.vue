@@ -2,11 +2,10 @@
   <div id="login-screen" class="login-container">
 
     <div>
-       <img src="/img/core-img/logo.png" alt="logo"
-                                style="width:420px; height:140x" />
+      <img src="/img/core-img/logo.png" alt="logo" style="width:420px; max-width: 90%; height:auto;" />
     </div>
-   <br>
- 
+    <br>
+
     <h2>Iniciar Sesión</h2>
     <form @submit.prevent="handleLogin" class="login-form">
       <div class="form-group">
@@ -54,7 +53,7 @@ export default {
 
       try {
         const apiUrl = `${import.meta.env.VITE_API_URL}login/`;
-          console.log('url', apiUrl);
+        console.log('url', apiUrl);
         // Obtener el token CSRF de la cookie
         const csrfToken = this.getCookie('csrftoken');
 
@@ -109,6 +108,8 @@ export default {
   min-height: 50vh;
   background-color: white;
   font-family: Arial, sans-serif;
+  padding: 20px;
+  /* Add padding for small screens */
 }
 
 .login-form {
@@ -189,5 +190,20 @@ button:disabled {
   margin-top: 15px;
   text-align: center;
   font-size: 14px;
+}
+
+/* Media Query for Mobile Devices */
+@media (max-width: 480px) {
+  .login-form {
+    padding: 20px;
+    box-shadow: none;
+    /* Simplify on very small screens if desired, or keep it */
+    border: 1px solid #eee;
+    /* Optional border instead of shadow */
+  }
+
+  .login-container {
+    padding: 10px;
+  }
 }
 </style>

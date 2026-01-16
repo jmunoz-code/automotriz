@@ -11,6 +11,8 @@ urlpatterns = [
      # --- NUEVA RUTA DEDICADA PARA LA MODIFICACIÓN DE ESTADO POR ID ---
     path('presupuesto/estado/<int:id>/', PresupuestoEstadoUpdateAPIView.as_view()), 
     
+    # --- RUTA PARA ACTUALIZAR ESTADO POR RUT Y PATENTE ---
+    path('presupuesto/<str:rut>/<str:patente>/', PresupuestoEstadoByRutPatenteAPIView.as_view()),
     
          
 ]

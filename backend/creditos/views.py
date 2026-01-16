@@ -33,7 +33,8 @@ def buscar_creditos_rapido(request):
     try:
         # 2. OBTENER RESULTADOS INICIALES
         # Busca en Presupuesto con el filtro_q. Solo pide los campos que necesita.
-        resultados_presupuesto = Presupuesto.objects.filter(filtro_q).values(
+        # EXCLUIR contratos descartados (estado=1)
+        resultados_presupuesto = Presupuesto.objects.filter(filtro_q).filter(estado=0).values(
             'rut_cliente', 
             'nombre_cliente', 
             'patente_vehiculo',

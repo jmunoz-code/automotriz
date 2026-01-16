@@ -106,8 +106,9 @@ class PagoCuotasAPIView(APIView):
         rut_cliente = request.query_params.get('rut_cliente', None)
         patente = request.query_params.get('patente', None)
         nombres_filtro = request.query_params.get('nombres', None) # Término de búsqueda de nombres
+        historico = request.query_params.get('historico', 'false').lower() == 'true'  # Parámetro para histórico
 
-      
+        print(f"DEBUG: Parámetro historico={historico}")
 
         # Subconsulta para calcular la suma de abonos (total_abonos_sum) para cada Cuota
         subquery_abonos = DetallePagoCuotas.objects.filter(
@@ -119,9 +120,28 @@ class PagoCuotasAPIView(APIView):
         ).values('total_abonos_sum')[:1]
 
         # Anotar el total de abonos a cada objeto Cuota
-        cuotas = Cuota.objects.annotate(
-            abono_total=Subquery(subquery_abonos)
-        ).all() 
+        # Filtrar según el parámetro 'historico':
+        # - Si historico=true: SOLO cuotas de contratos con estado=1
+        # - Si historico=false: SOLO cuotas de contratos con estado=0 (activos)
+        if historico:
+            # Mostrar SOLO contratos descartados (estado=1)
+            cuotas = Cuota.objects.annotate(
+                abono_total=Subquery(subquery_abonos)
+            ).filter(
+                Q(rut_cliente__in=Presupuesto.objects.filter(estado=1).values_list('rut_cliente', flat=True)) &
+                Q(patente__in=Presupuesto.objects.filter(estado=1).values_list('patente_vehiculo', flat=True))
+            )
+            print(f"DEBUG: Filtrando SOLO contratos descartados (estado=1). Total: {cuotas.count()}")
+        else:
+            # Mostrar SOLO contratos activos (estado=0)
+            cuotas = Cuota.objects.annotate(
+                abono_total=Subquery(subquery_abonos)
+            ).filter(
+                Q(rut_cliente__in=Presupuesto.objects.filter(estado=0).values_list('rut_cliente', flat=True)) &
+                Q(patente__in=Presupuesto.objects.filter(estado=0).values_list('patente_vehiculo', flat=True))
+            )
+            print(f"DEBUG: Filtrando SOLO contratos activos (estado=0). Total: {cuotas.count()}")
+        
         # ----------------------------------------------------------------------
 # LÓGICA DE FILTRADO POR RUT Y PATENTE
 # ----------------------------------------------------------------------
@@ -218,8 +238,9 @@ class EliminarCuotasPorRutPatenteAPIView(APIView):
     def delete(self, request, *args, **kwargs):
         print("DEBUG: Entrando en EliminarCuotasPorRutPatenteAPIView.delete")
 
-        rut_cliente = request.data.get('rut_cliente')
-        patente = request.data.get('patente')
+        # Aceptar parámetros tanto de query_params como de request.data
+        rut_cliente = request.query_params.get('rut') or request.data.get('rut_cliente')
+        patente = request.query_params.get('patente') or request.data.get('patente')
 
         print(f"DEBUG: Solicitud de eliminación para RUT: {rut_cliente}, Patente: {patente}")
 
@@ -266,8 +287,13 @@ class CuotasImpagasAPIView(APIView):
             
             # 1. PRE-FILTRO: Solo cuotas que han vencido (reduce el queryset)
             # Y aquellas que aún no tienen la fecha de vencimiento.
+            # EXCLUIR cuotas de contratos descartados
             cuotas_base = Cuota.objects.filter(
                 Q(fecha_vencimiento__lt=date.today()) | Q(fecha_vencimiento__isnull=True)
+            ).filter(
+                # Filtrar solo cuotas cuyos contratos NO están descartados
+                Q(rut_cliente__in=Presupuesto.objects.filter(estado=0).values_list('rut_cliente', flat=True)) &
+                Q(patente__in=Presupuesto.objects.filter(estado=0).values_list('patente_vehiculo', flat=True))
             ).order_by('fecha_vencimiento')
 
             # 2. Aplicar filtro por rango de fechas de vencimiento si se proporcionaron

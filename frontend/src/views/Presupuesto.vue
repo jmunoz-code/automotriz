@@ -778,7 +778,8 @@ export default {
         const response = await fetch(apiUrl);
         if (response.ok) {
           const data = await response.json();
-          datos.value = data.data;
+          // Filtrar presupuestos descartados (estado = 1)
+          datos.value = data.data.filter(contrato => contrato.estado !== 1);
         } else {
           console.error('Error loading contract list:', response.statusText);
           mostrarMensaje('Error loading contract list.', 'error');
@@ -890,7 +891,7 @@ export default {
     // Lifecycle hook: executes when the component has been mounted in the DOM
     onMounted(() => {
       console.log('Componente Presupuesto montado correctamente.');
-      cargarListaDeContratos();
+
       cargarListaAutomoviles();
       obtenerVendedores();
       // NUEVO: Asignar la fecha actual al campo 'fecha' cuando se monta el componente
@@ -947,7 +948,7 @@ export default {
 <template>
 
   <div style="text-align: center">
-    <img src="/img/core-img/logo.png" alt="logo" style="width:280px; height:100px;" />
+    <img src="/img/core-img/logo.png" alt="logo" style="width:280px; max-width: 100%; height:auto;" />
 
   </div>
   <div class="page-container">
@@ -1068,11 +1069,7 @@ export default {
               Seleccione Opción de Pago:
             </td>
             <td class="data-col">
-              <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
-                <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.id)">
-                  Modificar
-                </button>
-              </div>
+
               <div class="radio-group">
                 <input type="radio" value="contado" v-model="formData.paymentOption">
                 &nbsp; Contado
@@ -1117,9 +1114,7 @@ export default {
             }}</strong></p>
             <p>Valor de Cada Cuota (con interés): <strong style="font-size: medium;">{{
               formatearMilesConPunto(formData.valor_cuota) }}</strong></p>
-            <button type="submit" class="btn btn-primary mt-3">
-              Grabar Presupuesto
-            </button>
+
 
             <button type="button" @click="limpiarFormulario" class="btn btn-secondary mt-3 ms-2">Limpiar</button>
           </div>
@@ -1130,46 +1125,7 @@ export default {
       </div>
     </form>
 
-    <div class="contract-list-section mt-5">
-      <h4>Cotizaciones Existentes</h4>
-      <table class="table table-striped data-table">
-        <thead>
-          <tr>
-            <th style="text-align: center;">RUT Vendedor</th>
-            <th style="text-align: center;">RUT Cliente</th>
-            <th style="text-align: center;">Nombre</th>
-            <th style="text-align: center;">Patente Vehículo</th>
-            <th style="text-align: center;">Precio Venta</th>
-            <th style="text-align: center;">Valor Pie</th>
-            <th style="text-align: center;">Nº Cuotas</th>
-            <th style="text-align: center;">Valor Cuota</th>
-            <th style="text-align: center;">Acciones</th>
 
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="datos.length === 0">
-            <td colspan="8" class="text-center">No hay contratos registrados.</td>
-          </tr>
-          <tr v-for="contrato in datos" :key="contrato.id">
-            <td>{{ contrato.rut_vendedor }}</td>
-            <td>{{ contrato.rut_cliente }}</td>
-            <td>{{ contrato.nombre_cliente }}</td>
-            <td>{{ contrato.patente_vehiculo }}</td>
-            <td>{{ formatearMilesConPunto(contrato.precio_venta) }}</td>
-            <td>{{ formatearMilesConPunto(contrato.valor_pie) }}</td>
-            <td>{{ contrato.numero_cuotas }}</td>
-            <td>{{ formatearMilesConPunto(contrato.valor_cuota) }}</td>
-
-            <td class="text-center">
-
-              <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(contrato.id)"
-                class="btn btn-sm btn-danger">Eliminar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
 
     <div v-if="mostrarModalEliminar" class="modal-overlay">
       <div class="modal-content">
@@ -1519,6 +1475,96 @@ h3 {
 
   .results-section strong {
     color: #000;
+  }
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .page-container {
+    margin: 10px;
+    padding: 10px;
+  }
+
+  /* Make logo responsive in template (overriding inline style if possible via class or just relying on max-width if added to inline) */
+  /* Note: The logo has inline styles, so we might need to change the template or use !important if we can't touch template easily. 
+     Better to update the template for the logo too. */
+
+  .input-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input-section label {
+    margin-bottom: 5px;
+  }
+
+  .input-section .btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  /* Responsive Tables for Vehicle Info (Stacking key-value pairs) */
+  .vehicle-info-section .data-table,
+  .vehicle-info-section .data-table tbody,
+  .vehicle-info-section .data-table tr,
+  .vehicle-info-section .data-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .vehicle-info-section .data-table tr {
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  /* Hide empty rows if any */
+  .vehicle-info-section .data-table tr:empty {
+    display: none;
+  }
+
+  .vehicle-info-section .data-table td {
+    padding: 8px 10px;
+    text-align: left;
+    border: none;
+    border-bottom: 1px solid #eee;
+  }
+
+  .vehicle-info-section .data-table td:last-child {
+    border-bottom: none;
+  }
+
+  .vehicle-info-section .data-table .label-col {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    color: #333;
+    width: 100%;
+    /* Override the 30% width */
+  }
+
+  /* Payment Option Table */
+  .data-table1,
+  .data-table1 tbody,
+  .data-table1 tr,
+  .data-table1 td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table1 td {
+    padding: 10px 0;
+  }
+
+  /* Automoviles List - Horizontal Scroll */
+  .automoviles-list-section {
+    overflow-x: auto;
+  }
+
+  .automoviles-list-section table {
+    min-width: 600px;
+    /* Ensure it doesn't get too squashed */
   }
 }
 </style>

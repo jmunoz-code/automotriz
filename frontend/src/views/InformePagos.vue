@@ -102,10 +102,15 @@ export default {
       const termino = filtroFechaTermino.value ? new Date(filtroFechaTermino.value + 'T23:59:59') : null;
 
       const pagadasYFiltradasPorFecha = listaCuotas.value.filter(cuota => {
+        // Filtrar cuotas de contratos descartados (estado = 1)
+        if (cuota.estado === 1) {
+          return false;
+        }
+
         const cuotaPagada = parseFloat(cuota.abono_total) > 0;
         const fechaVencimiento = new Date(cuota.fecha_vencimiento);
         const enRango = (!inicio || fechaVencimiento >= inicio) && (!termino || fechaVencimiento <= termino);
-        
+
         return cuotaPagada && enRango;
       });
 
@@ -123,7 +128,7 @@ export default {
       const cuotasProcesadas = [];
       for (const clavePrestamo in prestamosAgrupados) {
         let capitalRestante = parseFloat(prestamosAgrupados[clavePrestamo][0].monto_a_financiar);
-        
+
         prestamosAgrupados[clavePrestamo].sort((a, b) => a.numero_cuota - b.numero_cuota);
 
         prestamosAgrupados[clavePrestamo].forEach(cuota => {
@@ -131,7 +136,7 @@ export default {
           const pagoCapital = parseFloat(cuota.monto_cuota) - interesCalculado;
           const capitalAntesDelPago = capitalRestante;
           capitalRestante -= pagoCapital;
-          
+
           const cuotaConCalculos = {
             ...cuota,
             interes_calculado: interesCalculado,
@@ -150,9 +155,9 @@ export default {
         const anio = fecha.getFullYear();
         const mes = fecha.getMonth() + 1;
         const claveMes = `${anio}-${String(mes).padStart(2, '0')}`;
-        
+
         if (!grupos[anio]) {
-          grupos[anio] = { 
+          grupos[anio] = {
             totalAnual: 0,
             totalInteresAnual: 0,
             totalCapitalAnual: 0,
@@ -162,8 +167,8 @@ export default {
           };
         }
         if (!grupos[anio].meses[claveMes]) {
-          grupos[anio].meses[claveMes] = { 
-            totalMensual: 0, 
+          grupos[anio].meses[claveMes] = {
+            totalMensual: 0,
             totalInteresMensual: 0,
             totalCapitalMensual: 0,
             totalAmortizacionCapitalMensual: 0,
@@ -172,7 +177,7 @@ export default {
             cuotas: []
           };
         }
-        
+
         grupos[anio].meses[claveMes].cuotas.push(cuota);
         grupos[anio].meses[claveMes].totalMensual += parseFloat(cuota.abono_total) || 0;
         grupos[anio].meses[claveMes].totalInteresMensual += cuota.interes_calculado || 0;
@@ -299,29 +304,29 @@ export default {
             </div>
 
             <div class="card shadow-sm mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Totales Anuales</h5>
+              <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Totales Anuales</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3">
+                    <p class="mb-1 negrita">Total Interés:</p>
+                    <h5>$ {{ formatearMilesConPunto(anioData.totalInteresAnual) }}</h5>
+                  </div>
+                  <div class="col-md-3">
+                    <p class="mb-1 negrita">Total Capital:</p>
+                    <h5>$ {{ formatearMilesConPunto(anioData.totalCapitalAnual) }}</h5>
+                  </div>
+                  <div class="col-md-3">
+                    <p class="mb-1 negrita">Total Cuotas:</p>
+                    <h5>$ {{ formatearMilesConPunto(anioData.totalMontoCuotaAnual) }}</h5>
+                  </div>
+                  <div class="col-md-3">
+                    <p class="mb-1 negrita">Total Abonado:</p>
+                    <h5>$ {{ formatearMilesConPunto(anioData.totalAbonadoAnual) }}</h5>
+                  </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <p class="mb-1 negrita">Total Interés:</p>
-                            <h5>$ {{ formatearMilesConPunto(anioData.totalInteresAnual) }}</h5>
-                        </div>
-                        <div class="col-md-3">
-                            <p class="mb-1 negrita">Total Capital:</p>
-                            <h5>$ {{ formatearMilesConPunto(anioData.totalCapitalAnual) }}</h5>
-                        </div>
-                        <div class="col-md-3">
-                            <p class="mb-1 negrita">Total Cuotas:</p>
-                            <h5>$ {{ formatearMilesConPunto(anioData.totalMontoCuotaAnual) }}</h5>
-                        </div>
-                        <div class="col-md-3">
-                            <p class="mb-1 negrita">Total Abonado:</p>
-                            <h5>$ {{ formatearMilesConPunto(anioData.totalAbonadoAnual) }}</h5>
-                        </div>
-                    </div>
-                </div>
+              </div>
             </div>
 
             <div v-for="(mesData, claveMes) in anioData.meses" :key="claveMes" class="card shadow-sm mb-4">
@@ -352,7 +357,7 @@ export default {
                         <th style="text-align: center">Monto Abonado</th>
                         <th style="text-align: center">Saldo</th>
                         <th style="text-align: center">Estado</th>
-                        
+
                       </tr>
                     </thead>
                     <tbody>
@@ -361,11 +366,13 @@ export default {
                         <td style="text-align: center">{{ cuota.patente }}</td>
                         <td style="text-align: center">{{ cuota.numero_cuota }}</td>
                         <td style="text-align: center">{{ formatearFecha(cuota.fecha_vencimiento) }}</td>
-                        <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_a_financiar_calculado) }}</td>
+                        <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_a_financiar_calculado) }}
+                        </td>
                         <td style="text-align: center">{{ cuota.interes_mensual }}</td>
                         <td style="text-align: center">{{ formatearMilesConPunto(cuota.interes_calculado) }}</td>
                         <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital) }}</td>
-                        <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital + cuota.interes_calculado) }}</td>
+                        <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital +
+                          cuota.interes_calculado) }}</td>
                         <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_cuota) }}</td>
                         <td style="text-align: center">{{ formatearMilesConPunto(cuota.abono_total) }}</td>
                         <td style="text-align: center">{{ formatearMilesConPunto(cuota.saldo) }}</td>
@@ -374,7 +381,7 @@ export default {
                             src="../img/visto.png" alt="Abono Completo" width="20" height="20" />
                           <img v-else src="../img/x.png" alt="Abono Pendiente" width="20" height="20" />
                         </td>
-                     
+
                       </tr>
                     </tbody>
                     <tfoot>
@@ -383,9 +390,12 @@ export default {
                         <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalCapitalMensual) }}</td>
                         <td colspan="1"></td>
                         <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalInteresMensual) }}</td>
-                        <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalAmortizacionCapitalMensual) }}</td>
-                        <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalInteresMensual + mesData.totalAmortizacionCapitalMensual) }}</td>
-                        <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalMontoCuotaMensual) }}</td>
+                        <td class="negrita text-center">{{
+                          formatearMilesConPunto(mesData.totalAmortizacionCapitalMensual) }}</td>
+                        <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalInteresMensual +
+                          mesData.totalAmortizacionCapitalMensual) }}</td>
+                        <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalMontoCuotaMensual) }}
+                        </td>
                         <td class="negrita text-center">{{ formatearMilesConPunto(mesData.totalAbonadoMensual) }}</td>
                         <td colspan="2"></td>
                       </tr>
@@ -437,18 +447,23 @@ export default {
 .negrita {
   font-weight: bolder;
 }
+
 .custom-table {
   width: 100%;
   table-layout: auto;
 }
-.custom-table td, .custom-table th {
+
+.custom-table td,
+.custom-table th {
   white-space: nowrap;
 }
+
 .spinner-border-sm {
   width: 1rem;
   height: 1rem;
   margin-right: 0.5rem;
 }
+
 .badge {
   font-size: 1rem;
 }

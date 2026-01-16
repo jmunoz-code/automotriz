@@ -154,7 +154,9 @@ export default {
       if (!listaCuotas.value || listaCuotas.value.length === 0) {
         return [];
       }
-      const cuotasSinFiltrar = listaCuotas.value;
+
+      // Filtrar cuotas de contratos descartados (estado = 1)
+      const cuotasSinFiltrar = listaCuotas.value.filter(cuota => cuota.estado !== 1);
 
       const prestamosAgrupados = cuotasSinFiltrar.reduce((acc, cuota) => {
         const clavePrestamo = `${cuota.rut_cliente}-${cuota.patente}`;
@@ -346,7 +348,7 @@ export default {
                   @click="seleccionarCreditoYGenerarInforme(credito)">
                   <span class="negrita">{{ credito.nombres_completos }} - {{ credito.apellidos_cliente }}</span> <br>
                   <small>RUT: {{ credito.rut_cliente }} - Patente: {{ credito.patente }} </small>
-                   
+
                 </button>
               </div>
               <div v-if="isLoadingSearch" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000;">

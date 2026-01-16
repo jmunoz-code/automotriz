@@ -1,330 +1,460 @@
-<script>
-// Lógica del componente (sin cambios)
-import Header from '@/components/Header.vue';
-import Footer from '@/components/Footer.vue';
-import ModalDetallePago from '@/components/ModalDetallePago.vue';
-import AbonoDetalleModal from '@/components/AbonoDetalleModal.vue';
-import { onMounted, ref, computed, watch } from 'vue';
+        <script>
+        // Lógica del componente (sin cambios)
+        import Header from '@/components/Header.vue';
+        import Footer from '@/components/Footer.vue';
+        import ModalDetallePago from '@/components/ModalDetallePago.vue';
+        import AbonoDetalleModal from '@/components/AbonoDetalleModal.vue';
+        import { onMounted, ref, computed, watch } from 'vue';
 
-export default {
-  components: {
-    Header,
-    Footer,
-    AbonoDetalleModal,
-    ModalDetallePago,
-  },
-  setup() {
-    const listaCuotas = ref([]);
-    const isLoading = ref(false);
-    const mensaje = ref('');
-    const tipoMensaje = ref('');
-
-    // Nivel del usuario
-    const nivel = ref(localStorage.getItem('user_nivel'));
-
-    const filtroRutCuota = ref('');
-    const filtroPatenteCuota = ref('');
-
-    const showModal = ref(false);
-    const showModal1 = ref(false);
-    const cuotaParaEditar = ref({});
-
-    const formatearMilesConPunto = (valor) => {
-      if (valor === null || valor === undefined) {
-        return '';
-      }
-
-      // 1. Convertir a número.
-      const num = parseFloat(valor);
-
-      if (isNaN(num)) {
-        return '';
-      }
-
-      // 2. Aplicar el redondeo al entero más cercano aquí:
-      const numRedondeado = Math.round(num); // <-- ¡Aquí se redondea!
-
-      // 3. Aplicar el formato.
-      const formatter = new Intl.NumberFormat('de-DE');
-      return formatter.format(numRedondeado); // Usamos el número redondeado
-    };
-    const formatearFecha = (fechaISO) => {
-      if (!fechaISO) return '';
-      const date = new Date(fechaISO);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    };
-
-    const mostrarMensaje = (texto, tipo) => {
-      mensaje.value = texto;
-      tipoMensaje.value = tipo;
-      setTimeout(limpiarMensaje, 3000);
-    };
-
-    const limpiarMensaje = () => {
-      mensaje.value = '';
-      tipoMensaje.value = '';
-    };
-
-    const cargarListaDeCuotas = async () => {
-      isLoading.value = true;
-      listaCuotas.value = [];
-      try {
-        let apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/`;
-        const params = new URLSearchParams();
-        if (filtroRutCuota.value) {
-          params.append('rut_cliente', filtroRutCuota.value);
-        }
-        if (filtroPatenteCuota.value) {
-          params.append('patente', filtroPatenteCuota.value);
-        }
-        if (params.toString()) {
-          apiUrl += `?${params.toString()}`;
-        }
-        const response = await fetch(apiUrl);
-        if (response.ok) {
-          const data = await response.json();
-          listaCuotas.value = data.data;
-          mostrarMensaje('Lista de cuotas actualizada.', 'success');
-        } else {
-          console.error('Error cargando la lista de cuotas:', response.statusText);
-          mostrarMensaje('Error cargando la lista de cuotas.', 'error');
-        }
-      } catch (error) {
-        console.error('Error de conexión cargando la lista de cuotas:', error);
-        mostrarMensaje('Error de conexión con el servidor.', 'error');
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    const eliminarCuotas = async () => {
-      if (!filtroRutCuota.value || !filtroPatenteCuota.value) {
-        mostrarMensaje('Por favor, ingrese un RUT de cliente y una Patente para eliminar.', 'error');
-        return;
-      }
-      if (!confirm(`¿Está seguro de que desea eliminar todas las cuotas para el RUT: ${filtroRutCuota.value} y Patente: ${filtroPatenteCuota.value}? Esta acción no se puede deshacer.`)) {
-        return;
-      }
-      isLoading.value = true;
-      try {
-        const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_rut_patente/`;
-        const response = await fetch(apiUrl, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
+        export default {
+          components: {
+            Header,
+            Footer,
+            AbonoDetalleModal,
+            ModalDetallePago,
           },
-          body: JSON.stringify({
-            rut_cliente: filtroRutCuota.value,
-            patente: filtroPatenteCuota.value,
-          }),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          mostrarMensaje(data.message || 'Cuotas eliminadas exitosamente.', 'success');
-          cargarListaDeCuotas();
-        } else {
-          const errorData = await response.json();
-          console.error('Error eliminando cuotas:', errorData.message || response.statusText);
-          mostrarMensaje(errorData.message || 'Error al eliminar cuotas.', 'error');
-        }
-      } catch (error) {
-        console.error('Error de conexión al eliminar cuotas:', error);
-        mostrarMensaje('Error de conexión con el servidor al intentar eliminar.', 'error');
-      } finally {
-        isLoading.value = false;
-      }
-    };
+          setup() {
+            const listaCuotas = ref([]);
+            const isLoading = ref(false);
+            const mensaje = ref('');
+            const tipoMensaje = ref('');
 
-    const eliminarUnaCuota = async (cuotaId) => {
-      const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_id/${cuotaId}/`;
-      console.log('URL:', apiUrl);
-      if (!confirm('¿Está seguro de que desea eliminar esta cuota? Esta acción no se puede deshacer.')) {
-        return;
-      }
-      isLoading.value = true;
-      try {
-        const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_id/${cuotaId}/`;
-        console.log('URL:', apiUrl);
-        const response = await fetch(apiUrl, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          mostrarMensaje('Cuota eliminada exitosamente.', 'success');
-          cargarListaDeCuotas();
-        } else {
-          const errorData = await response.json();
-          console.error('Error eliminando la cuota:', errorData.message || response.statusText);
-          mostrarMensaje(errorData.message || 'Error al eliminar la cuota.', 'error');
-        }
-      } catch (error) {
-        console.error('Error de conexión al eliminar cuota:', error);
-        mostrarMensaje('Error de conexión con el servidor al intentar eliminar la cuota.', 'error');
-      } finally {
-        isLoading.value = false;
-      }
-    };
+            // Nivel del usuario
+            const nivel = ref(localStorage.getItem('user_nivel'));
 
-    const abrirModalEdicion = (cuota) => {
-      cuotaParaEditar.value = { ...cuota };
-      showModal.value = true;
-    };
+            const filtroRutCuota = ref('');
+            const filtroPatenteCuota = ref('');
+            const mostrarHistorico = ref(false);
 
-    const cerrarModalEdicion = () => {
-      showModal.value = false;
-      cargarListaDeCuotas();
-    };
+            const showModal = ref(false);
+            const showModal1 = ref(false);
 
-    const abrirModalGrabar = (cuota) => {
-      cuotaParaEditar.value = { ...cuota };
-      showModal1.value = true;
-    };
+            const clienteSeleccionado = ref(null); // Estado para manejar la vista detallada
+            const cuotaParaEditar = ref({});
+            // const mostrarSoloMora = ref(true); // Ya no se usa explícitamente con switch, es implícito en la vista principal
 
-    const cerrarModalGrabar = () => {
-      showModal1.value = false;
-    };
 
-    const handleAbonoRegistrado = (mensajeTexto, tipo) => {
-      mostrarMensaje(mensajeTexto, tipo);
-      cargarListaDeCuotas();
-    };
+            const formatearMilesConPunto = (valor) => {
+              if (valor === null || valor === undefined) {
+                return '';
+              }
 
-    // Ejemplo de la función que podría disparar la actualización
-    const grabarEdicionCuota = async (cuotaId, nuevoMonto) => {
-      console.log('Modifica:');
+              // 1. Convertir a número.
+              const num = parseFloat(valor);
 
-      try {
-        const url = `${import.meta.env.VITE_API_URL}pagocuotas/modificar_cuota/${cuotaId}/`;
+              if (isNaN(num)) {
+                return '';
+              }
 
-        const response = await fetch(url, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
+              // 2. Aplicar el redondeo al entero más cercano aquí:
+              const numRedondeado = Math.round(num); // <-- ¡Aquí se redondea!
+
+              // 3. Aplicar el formato.
+              const formatter = new Intl.NumberFormat('de-DE');
+              return formatter.format(numRedondeado); // Usamos el número redondeado
+            };
+            const formatearFecha = (fechaISO) => {
+              if (!fechaISO) return '';
+              const date = new Date(fechaISO);
+              const day = String(date.getDate()).padStart(2, '0');
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const year = date.getFullYear();
+              return `${day}-${month}-${year}`;
+            };
+
+            const mostrarMensaje = (texto, tipo) => {
+              mensaje.value = texto;
+              tipoMensaje.value = tipo;
+              setTimeout(limpiarMensaje, 3000);
+            };
+
+            const limpiarMensaje = () => {
+              mensaje.value = '';
+              tipoMensaje.value = '';
+            };
+
+            const cargarListaDeCuotas = async () => {
+              isLoading.value = true;
+              listaCuotas.value = [];
+              try {
+                let apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/`;
+                const params = new URLSearchParams();
+
+                // Agregar parámetro histórico según el checkbox
+                params.append('historico', mostrarHistorico.value ? 'true' : 'false');
+
+                if (filtroRutCuota.value) {
+                  params.append('rut_cliente', filtroRutCuota.value);
+                }
+                if (filtroPatenteCuota.value) {
+                  params.append('patente', filtroPatenteCuota.value);
+                }
+
+                apiUrl += `?${params.toString()}`;
+
+                const response = await fetch(apiUrl);
+                if (response.ok) {
+                  const data = await response.json();
+                  listaCuotas.value = data.data;
+                  mostrarMensaje('Lista de cuotas actualizada.', 'success');
+                } else {
+                  console.error('Error cargando la lista de cuotas:', response.statusText);
+                  mostrarMensaje('Error cargando la lista de cuotas.', 'error');
+                }
+              } catch (error) {
+                console.error('Error de conexión cargando la lista de cuotas:', error);
+                mostrarMensaje('Error de conexión con el servidor.', 'error');
+              } finally {
+                isLoading.value = false;
+              }
+            };
+
+            const eliminarCuotas = async () => {
+              if (!filtroRutCuota.value || !filtroPatenteCuota.value) {
+                mostrarMensaje('Por favor, ingrese un RUT de cliente y una Patente para eliminar.', 'error');
+                return;
+              }
+              if (!confirm(`¿Está seguro de que desea eliminar todas las cuotas para el RUT: ${filtroRutCuota.value} y Patente: ${filtroPatenteCuota.value}? Esta acción no se puede deshacer.`)) {
+                return;
+              }
+              isLoading.value = true;
+              try {
+                const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_rut_patente/`;
+                const response = await fetch(apiUrl, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    rut_cliente: filtroRutCuota.value,
+                    patente: filtroPatenteCuota.value,
+                  }),
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  mostrarMensaje(data.message || 'Cuotas eliminadas exitosamente.', 'success');
+                  cargarListaDeCuotas();
+                } else {
+                  const errorData = await response.json();
+                  console.error('Error eliminando cuotas:', errorData.message || response.statusText);
+                  mostrarMensaje(errorData.message || 'Error al eliminar cuotas.', 'error');
+                }
+              } catch (error) {
+                console.error('Error de conexión al eliminar cuotas:', error);
+                mostrarMensaje('Error de conexión con el servidor al intentar eliminar.', 'error');
+              } finally {
+                isLoading.value = false;
+              }
+            };
+
+            const eliminarUnaCuota = async (cuotaId) => {
+              const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_id/${cuotaId}/`;
+              console.log('URL:', apiUrl);
+              if (!confirm('¿Está seguro de que desea eliminar esta cuota? Esta acción no se puede deshacer.')) {
+                return;
+              }
+              isLoading.value = true;
+              try {
+                const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_id/${cuotaId}/`;
+                console.log('URL:', apiUrl);
+                const response = await fetch(apiUrl, {
+                  method: 'DELETE',
+                });
+                if (response.ok) {
+                  mostrarMensaje('Cuota eliminada exitosamente.', 'success');
+                  cargarListaDeCuotas();
+                } else {
+                  const errorData = await response.json();
+                  console.error('Error eliminando la cuota:', errorData.message || response.statusText);
+                  mostrarMensaje(errorData.message || 'Error al eliminar la cuota.', 'error');
+                }
+              } catch (error) {
+                console.error('Error de conexión al eliminar cuota:', error);
+                mostrarMensaje('Error de conexión con el servidor al intentar eliminar la cuota.', 'error');
+              } finally {
+                isLoading.value = false;
+              }
+            };
+
+            const abrirModalEdicion = (cuota) => {
+              cuotaParaEditar.value = { ...cuota };
+              showModal.value = true;
+            };
+
+            const cerrarModalEdicion = () => {
+              showModal.value = false;
+              cargarListaDeCuotas();
+            };
+
+            const abrirModalGrabar = (cuota) => {
+              cuotaParaEditar.value = { ...cuota };
+              showModal1.value = true;
+            };
+
+            const cerrarModalGrabar = () => {
+              showModal1.value = false;
+            };
+
+            const handleAbonoRegistrado = (mensajeTexto, tipo) => {
+              mostrarMensaje(mensajeTexto, tipo);
+              cargarListaDeCuotas();
+            };
+
+            // Ejemplo de la función que podría disparar la actualización
+            const grabarEdicionCuota = async (cuotaId, nuevoMonto) => {
+              if (nivel.value !== 'ADMIN') {
+                mostrarMensaje('Acción no permitida. Solo administradores pueden modificar el monto.', 'error');
+                return;
+              }
+              console.log('Modifica:');
+
+              try {
+                const url = `${import.meta.env.VITE_API_URL}pagocuotas/modificar_cuota/${cuotaId}/`;
+
+                const response = await fetch(url, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    monto_cuota: nuevoMonto
+                  })
+                });
+
+                if (!response.ok) {
+                  throw new Error(`Error al actualizar la cuota: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Cuota actualizada exitosamente:', data);
+
+                // Opcional: Recargar los datos de la lista para mostrar el cambio
+                cargarListaDeCuotas();
+
+
+              } catch (error) {
+                console.error('Error:', error);
+                // Manejar el error, por ejemplo, mostrar un mensaje al usuario
+                mostrarMensaje('Error al actualizar la cuota.', 'error');
+              }
+            };
+
+            const actualizarObservacion = async (cuotaId, nuevaObservacion) => {
+              try {
+                const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/${cuotaId}/`;
+                const response = await fetch(apiUrl, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ observacion: nuevaObservacion }),
+                });
+                if (response.ok) {
+                  mostrarMensaje('Observación actualizada exitosamente.', 'success');
+                } else {
+                  const errorData = await response.json();
+                  console.error('Error al actualizar la observación:', errorData.message || response.statusText);
+                  mostrarMensaje('Error al actualizar la observación.', 'error');
+                }
+              } catch (error) {
+                console.error('Error de conexión al actualizar observación:', error);
+                mostrarMensaje('Error de conexión al actualizar la observación.', 'error');
+              }
+            };
+
+            // --- PROPIEDAD COMPUTADA CON LA LÓGICA DE REINICIO CORREGIDA ---
+            const cuotasConCalculoDeCapital = computed(() => {
+              if (!listaCuotas.value || listaCuotas.value.length === 0) {
+                return [];
+              }
+
+              // Ya no filtramos por estado aquí, el backend se encarga según el parámetro 'historico'
+              const cuotasFiltradas = listaCuotas.value;
+
+              let capitalRestante = 0;
+              let lastRut = null;
+              let lastPatente = null;
+
+              // Se usa .map() para crear un nuevo array con los cálculos
+              return cuotasFiltradas.map((cuota, index) => {
+                const nuevaCuota = { ...cuota };
+
+                // Condición para reiniciar el cálculo: si el RUT o la patente cambian.
+                if (index === 0 || nuevaCuota.rut_cliente !== lastRut || nuevaCuota.patente !== lastPatente) {
+                  capitalRestante = parseFloat(nuevaCuota.monto_a_financiar);
+                }
+
+                // Calcula el interés de la cuota actual en base al capital restante.
+                const interesCalculado = (capitalRestante * nuevaCuota.interes_mensual) / 100;
+                nuevaCuota.interes_calculado = interesCalculado;
+
+                // Calcula el pago de capital de la cuota actual.
+                const pagoCapital = nuevaCuota.monto_cuota - interesCalculado;
+                nuevaCuota.pago_capital = pagoCapital;
+
+                // Asigna el capital restante actual a la propiedad de la cuota.
+                nuevaCuota.monto_a_financiar_calculado = capitalRestante;
+
+                // Actualiza el capital restante para la siguiente iteración.
+                capitalRestante -= pagoCapital;
+
+                // Almacena los valores de la fila actual para la próxima comparación.
+                lastRut = nuevaCuota.rut_cliente;
+                lastPatente = nuevaCuota.patente;
+
+                // Cálculo de días de atraso
+                const fechaVenc = new Date(nuevaCuota.fecha_vencimiento);
+                const hoy = new Date();
+                const diffTime = hoy - fechaVenc;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                nuevaCuota.dias_atraso = diffDays > 0 ? diffDays : 0;
+
+                return nuevaCuota;
+              });
+            });
+
+            // --- LÓGICA DE AGRUPACIÓN PARA LA VISTA PRINCIPAL ---
+            // Muestra clientes con cuotas pendientes (pagadas parcialmente o no pagadas)
+            const clientesEnMora = computed(() => {
+              const grupos = new Map();
+              const cuotas = cuotasConCalculoDeCapital.value;
+
+              cuotas.forEach((cuota) => {
+                const key = `${cuota.rut_cliente}-${cuota.patente}`;
+
+                if (!grupos.has(key)) {
+                  grupos.set(key, {
+                    rut_cliente: cuota.rut_cliente,
+                    nombres: cuota.nombres,
+                    apellidos: cuota.apellidos,
+                    patente: cuota.patente,
+                    tiene_deuda: false,
+                    // Guardamos referencia para mostrar datos básicos
+                  });
+                }
+
+                const grupo = grupos.get(key);
+
+                // Verificación de cuotas pendientes (con saldo > 0)
+                // Incluye tanto cuotas vencidas como no vencidas pero con pago pendiente
+                const monto = parseFloat(cuota.monto_cuota) || 0;
+                const abono = parseFloat(cuota.abono_total) || 0;
+                const saldo = monto - abono;
+
+                if (saldo > 0) {
+                  grupo.tiene_deuda = true;
+                }
+              });
+
+              // Retornar solo grupos con deuda
+              return Array.from(grupos.values()).filter(g => g.tiene_deuda);
+            });
+
+            // --- CUOTAS DEL CLIENTE SELECCIONADO (DETALLE) ---
+            const cuotasDeClienteSeleccionado = computed(() => {
+              if (!clienteSeleccionado.value) return [];
+              return cuotasConCalculoDeCapital.value.filter(c =>
+                c.rut_cliente === clienteSeleccionado.value.rut_cliente &&
+                c.patente === clienteSeleccionado.value.patente
+              );
+            });
+
+            const verDetalleCliente = (cliente) => {
+              clienteSeleccionado.value = cliente;
+            };
+
+            const volverALista = () => {
+              clienteSeleccionado.value = null;
+            };
+
+            const cambiarEstadoPresupuesto = async () => {
+              if (!clienteSeleccionado.value) return;
+
+              try {
+                const nuevoEstado = mostrarHistorico.value ? 1 : 0;
+                const apiUrl = `${import.meta.env.VITE_API_URL}presupuesto/${clienteSeleccionado.value.rut_cliente}/${clienteSeleccionado.value.patente}/`;
+
+                const response = await fetch(apiUrl, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ estado: nuevoEstado }),
+                });
+
+                if (response.ok) {
+                  const mensaje = nuevoEstado === 1
+                    ? 'Contrato movido al histórico exitosamente.'
+                    : 'Contrato reactivado exitosamente.';
+                  mostrarMensaje(mensaje, 'success');
+
+                  // Recargar las cuotas para reflejar el cambio
+                  await cargarListaDeCuotas();
+
+                  // Volver a la lista principal
+                  volverALista();
+                } else {
+                  const errorData = await response.json();
+                  console.error('Error al actualizar el estado del presupuesto:', errorData);
+                  mostrarMensaje('Error al actualizar el estado del presupuesto.', 'error');
+                  // Revertir el checkbox si falla
+                  mostrarHistorico.value = !mostrarHistorico.value;
+                }
+              } catch (error) {
+                console.error('Error de conexión al actualizar estado:', error);
+                mostrarMensaje('Error de conexión al actualizar el estado.', 'error');
+                // Revertir el checkbox si falla
+                mostrarHistorico.value = !mostrarHistorico.value;
+              }
+            };
+
+
+
+            watch([filtroRutCuota, filtroPatenteCuota, mostrarHistorico], () => {
+              cargarListaDeCuotas();
+            });
+
+            onMounted(() => {
+              // cargarListaDeCuotas();
+            });
+
+            return {
+              listaCuotas,
+              isLoading,
+              mensaje,
+              tipoMensaje,
+              filtroRutCuota,
+              filtroPatenteCuota,
+              cargarListaDeCuotas,
+              eliminarCuotas,
+              formatearMilesConPunto,
+              formatearFecha,
+              mostrarMensaje,
+              showModal,
+              showModal1,
+              cuotaParaEditar,
+              abrirModalEdicion,
+              cerrarModalEdicion,
+              abrirModalGrabar,
+              cerrarModalGrabar,
+              handleAbonoRegistrado,
+              actualizarObservacion,
+              eliminarUnaCuota,
+              cuotasConCalculoDeCapital,
+              grabarEdicionCuota,
+              nivel,
+              clientesEnMora,
+              clienteSeleccionado,
+              cuotasDeClienteSeleccionado,
+              verDetalleCliente,
+              volverALista,
+              mostrarHistorico,
+              cambiarEstadoPresupuesto,
+
+
+            };
           },
-          body: JSON.stringify({
-            monto_cuota: nuevoMonto
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Error al actualizar la cuota: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('Cuota actualizada exitosamente:', data);
-
-        // Opcional: Recargar los datos de la lista para mostrar el cambio
-        cargarListaDeCuotas();
-
-
-      } catch (error) {
-        console.error('Error:', error);
-        // Manejar el error, por ejemplo, mostrar un mensaje al usuario
-      }
-    };
-
-    const actualizarObservacion = async (cuotaId, nuevaObservacion) => {
-      try {
-        const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/${cuotaId}/`;
-        const response = await fetch(apiUrl, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ observacion: nuevaObservacion }),
-        });
-        if (response.ok) {
-          mostrarMensaje('Observación actualizada exitosamente.', 'success');
-        } else {
-          const errorData = await response.json();
-          console.error('Error al actualizar la observación:', errorData.message || response.statusText);
-          mostrarMensaje('Error al actualizar la observación.', 'error');
-        }
-      } catch (error) {
-        console.error('Error de conexión al actualizar observación:', error);
-        mostrarMensaje('Error de conexión al actualizar la observación.', 'error');
-      }
-    };
-
-    // --- PROPIEDAD COMPUTADA CON LA LÓGICA DE REINICIO CORREGIDA ---
-    const cuotasConCalculoDeCapital = computed(() => {
-      if (!listaCuotas.value || listaCuotas.value.length === 0) {
-        return [];
-      }
-
-      let capitalRestante = 0;
-      let lastRut = null;
-      let lastPatente = null;
-
-      // Se usa .map() para crear un nuevo array con los cálculos
-      return listaCuotas.value.map((cuota, index) => {
-        const nuevaCuota = { ...cuota };
-
-        // Condición para reiniciar el cálculo: si el RUT o la patente cambian.
-        if (index === 0 || nuevaCuota.rut_cliente !== lastRut || nuevaCuota.patente !== lastPatente) {
-          capitalRestante = parseFloat(nuevaCuota.monto_a_financiar);
-        }
-
-        // Calcula el interés de la cuota actual en base al capital restante.
-        const interesCalculado = (capitalRestante * nuevaCuota.interes_mensual) / 100;
-        nuevaCuota.interes_calculado = interesCalculado;
-
-        // Calcula el pago de capital de la cuota actual.
-        const pagoCapital = nuevaCuota.monto_cuota - interesCalculado;
-        nuevaCuota.pago_capital = pagoCapital;
-
-        // Asigna el capital restante actual a la propiedad de la cuota.
-        nuevaCuota.monto_a_financiar_calculado = capitalRestante;
-
-        // Actualiza el capital restante para la siguiente iteración.
-        capitalRestante -= pagoCapital;
-
-        // Almacena los valores de la fila actual para la próxima comparación.
-        lastRut = nuevaCuota.rut_cliente;
-        lastPatente = nuevaCuota.patente;
-
-        return nuevaCuota;
-      });
-    });
-
-    watch([filtroRutCuota, filtroPatenteCuota], () => {
-      cargarListaDeCuotas();
-    });
-
-    onMounted(() => {
-      // cargarListaDeCuotas();
-    });
-
-    return {
-      listaCuotas,
-      isLoading,
-      mensaje,
-      tipoMensaje,
-      filtroRutCuota,
-      filtroPatenteCuota,
-      cargarListaDeCuotas,
-      eliminarCuotas,
-      formatearMilesConPunto,
-      formatearFecha,
-      mostrarMensaje,
-      showModal,
-      showModal1,
-      cuotaParaEditar,
-      abrirModalEdicion,
-      cerrarModalEdicion,
-      abrirModalGrabar,
-      cerrarModalGrabar,
-      handleAbonoRegistrado,
-      actualizarObservacion,
-      eliminarUnaCuota,
-      cuotasConCalculoDeCapital,
-      grabarEdicionCuota,
-      nivel,
-    };
-  },
-};
+        };
 </script>
 
 
@@ -349,6 +479,13 @@ export default {
               v-model.lazy="filtroPatenteCuota" placeholder="Ej: ABCD12" />
           </div>
           <div class="col-md-4 d-flex align-items-end justify-content-between">
+            <div class="form-check d-flex align-items-center me-3 checkbox-historico">
+              <input type="checkbox" class="form-check-input checkbox-large" id="checkHistorico"
+                v-model="mostrarHistorico">
+              <label class="form-check-label negrita ms-2" for="checkHistorico">
+                Histórico
+              </label>
+            </div>
             <button class="btn btn-primary btn-sm me-2" @click="cargarListaDeCuotas" :disabled="isLoading">
               <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               {{ isLoading ? 'Cargando...' : 'Buscar Cuotas' }}
@@ -358,18 +495,12 @@ export default {
               <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               {{ isLoading ? 'Eliminando...' : 'Eliminar Cuotas' }}
             </button>
+
           </div>
         </div>
 
-        <div v-if="mensaje" class="alert" :class="{
-          'alert-success': tipoMensaje === 'success',
-          'alert-danger': tipoMensaje === 'error',
-          'alert-info': tipoMensaje === 'info',
-        }" role="alert">
-          {{ mensaje }}
-        </div>
-
-        <div class="table-responsive">
+        <div v-if="!clienteSeleccionado" class="table-responsive">
+          <h5 class="mb-3 text-secondary">Clientes con Cuotas Pendientes</h5>
           <table class="table table-striped table-hover custom-table">
             <thead>
               <tr>
@@ -377,84 +508,119 @@ export default {
                 <th style="text-align: center">Nombre</th>
                 <th style="text-align: center">Apellido</th>
                 <th style="text-align: center">Patente</th>
-                <th style="text-align: center"># Cuota</th>
-                <th style="text-align: center">Fecha Vencimiento</th>
-                <th style="text-align: center">Capital</th>
-                <th style="text-align: center">Tasa</th>
-                <th style="text-align: center">Interes</th>
-                <th style="text-align: center">Amortizacion Capital</th>
-                <th style="text-align: center">Capital + Interés</th>
-                <th style="text-align: center">Monto Cuota</th>
-                <th style="text-align: center">Monto Abonado</th>
-                <th style="text-align: center">Saldo</th>
-                <th style="text-align: center">Estado</th>
-                <th style="text-align: center">Observación</th>
-                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="cuotasConCalculoDeCapital.length === 0 && !isLoading">
-                <td colspan="12" class="text-center">No se encontraron cuotas que coincidan con los criterios de
-                  búsqueda.</td>
+              <tr v-if="clientesEnMora.length === 0 && !isLoading">
+                <td colspan="4" class="text-center">No se encontraron clientes con cuotas pendientes.</td>
               </tr>
               <tr v-else-if="isLoading">
-                <td colspan="12" class="text-center">Cargando cuotas...</td>
+                <td colspan="4" class="text-center">Cargando...</td>
               </tr>
-              <tr v-for="cuota in cuotasConCalculoDeCapital" :key="cuota.id" style="cursor: pointer;">
-                <td style="text-align: center">{{ cuota.rut_cliente }}</td>
-                <td style="text-align: left;width: 120px;">{{ cuota.nombres.trim() }}</td>
-                <td style="text-align: left;width: 180px;">{{ cuota.apellidos.trim() }}</td>
-                <td style="text-align: center">{{ cuota.patente }}</td>
-                <td style="text-align: center">{{ cuota.numero_cuota }}</td>
-                <td style="text-align: center">{{ formatearFecha(cuota.fecha_vencimiento) }}</td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_a_financiar_calculado, 2) }}</td>
-                <td style="text-align: center">{{ cuota.interes_mensual }}</td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.interes_calculado, 2) }}</td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital, 2) }}</td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital + cuota.interes_calculado,
-                  2) }}</td>
-
-                <td style="text-align: center">
-
-
-                  <input type="number" v-model="cuota.monto_cuota"
-                    @blur="grabarEdicionCuota(cuota.id, cuota.monto_cuota)" class="form-control form-control-sm"
-                    style="width: 120px; text-align: center;" :disabled="nivel !== 'ADMIN'" />
-
-
-                </td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.abono_total) }} </td>
-                <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_cuota - cuota.abono_total) }}</td>
-                <td style="text-align: center">
-
-                  <img v-if="parseFloat(cuota.abono_total) >= parseFloat(cuota.monto_cuota)" src="../img/visto.png"
-                    alt="Abono Completo" width="20" height="20" />
-                  <img v-else src="../img/x.png" alt="Abono Pendiente" width="20" height="20" />
-
-                </td>
-                <td>
-                  <textarea class="form-control form-control-sm" v-model="cuota.observacion"
-                    @blur="actualizarObservacion(cuota.id, cuota.observacion)" placeholder="Agregar observación"
-                    rows="1" :disabled="nivel !== 'ADMIN'">
-                  </textarea>
-                </td>
-                <td style="width: 310px;">
-                  <button class="btn btn-info btn-sm me-4" style="margin-right: 3px;"
-                    @click.stop="abrirModalGrabar(cuota)">
-                    Abonar
-                  </button>
-                  <button class="btn btn-secondary btn-sm" @click.stop="abrirModalEdicion(cuota)"
-                    style="margin-right: 3px;">
-                    Abonos
-                  </button>
-                  <button class="btn btn-danger btn-sm" @click.stop="eliminarUnaCuota(cuota.id)"
-                    :disabled="nivel !== 'ADMIN'">
-                    Eliminar
-                  </button>
-                </td>
+              <tr v-for="grupo in clientesEnMora" :key="grupo.rut_cliente + grupo.patente"
+                @click="verDetalleCliente(grupo)" style="cursor: pointer;">
+                <td style="text-align: center">{{ grupo.rut_cliente }}</td>
+                <td style="text-align: center">{{ grupo.nombres }}</td>
+                <td style="text-align: center">{{ grupo.apellidos }}</td>
+                <td style="text-align: center">{{ grupo.patente }}</td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- VISTA NIVEL 2: DETALLE DE CUOTAS DEL CLIENTE SELECCIONADO -->
+        <div v-else>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center">
+              <h5 class="text-secondary mb-0 me-3">
+                Detalle de Cuotas: {{ clienteSeleccionado.nombres }} {{ clienteSeleccionado.apellidos }} ({{
+                  clienteSeleccionado.rut_cliente }} - {{
+                  clienteSeleccionado.patente }})
+              </h5>
+              <!-- Solo mostrar checkbox si se está viendo el histórico -->
+              <div v-if="mostrarHistorico" class="form-check d-flex align-items-center checkbox-historico-detalle">
+                <input type="checkbox" class="form-check-input checkbox-large" id="checkHistoricoDetalle"
+                  v-model="mostrarHistorico" @change="cambiarEstadoPresupuesto" :disabled="nivel !== 'ADMIN'">
+                <label class="form-check-label negrita ms-2" for="checkHistoricoDetalle">
+                  Histórico
+                </label>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" @click="volverALista">
+              <i class="fas fa-arrow-left"></i> Volver a la Lista
+            </button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="table table-striped table-hover custom-table">
+              <thead class="sticky-header">
+                <tr>
+                  <th style="text-align: center"># Cuota</th>
+                  <th style="text-align: center">Fecha Vencimiento</th>
+                  <th style="text-align: center">Capital</th>
+                  <th style="text-align: center">Tasa</th>
+                  <th style="text-align: center">Interes</th>
+                  <th style="text-align: center">Amortizacion Capital</th>
+                  <th style="text-align: center">Capital + Interés</th>
+                  <th style="text-align: center">Monto Cuota</th>
+                  <th style="text-align: center">Monto Abonado</th>
+                  <th style="text-align: center">Saldo</th>
+                  <th style="text-align: center">Estado</th>
+                  <th style="text-align: center">Observación</th>
+                  <th v-if="!mostrarHistorico">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="cuota in cuotasDeClienteSeleccionado" :key="cuota.id" style="cursor: pointer;">
+                  <td style="text-align: center">{{ cuota.numero_cuota }}</td>
+                  <td style="text-align: center">{{ formatearFecha(cuota.fecha_vencimiento) }}</td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_a_financiar_calculado, 2) }}</td>
+                  <td style="text-align: center">{{ cuota.interes_mensual }}</td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.interes_calculado, 2) }}</td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital, 2) }}</td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital + cuota.interes_calculado,
+                    2) }}</td>
+
+                  <td style="text-align: center">
+                    <input type="number" v-model="cuota.monto_cuota"
+                      @blur="grabarEdicionCuota(cuota.id, cuota.monto_cuota)" class="form-control form-control-sm"
+                      style="width: 120px; text-align: center;" :disabled="nivel !== 'ADMIN'" />
+
+                  </td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.abono_total) }} </td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_cuota - cuota.abono_total) }}
+                  </td>
+                  <td style="text-align: center">
+
+                    <img v-if="parseFloat(cuota.abono_total) >= parseFloat(cuota.monto_cuota)" src="../img/visto.png"
+                      alt="Abono Completo" width="20" height="20" />
+                    <img v-else src="../img/x.png" alt="Abono Pendiente" width="20" height="20" />
+
+                  </td>
+                  <td>
+                    <textarea class="form-control form-control-sm" v-model="cuota.observacion"
+                      @blur="actualizarObservacion(cuota.id, cuota.observacion)" placeholder="Agregar observación"
+                      rows="1" :disabled="nivel !== 'ADMIN'">
+                    </textarea>
+                  </td>
+                  <td v-if="!mostrarHistorico" style="width: 310px;">
+                    <button class="btn btn-info btn-sm me-4" style="margin-right: 3px;"
+                      @click.stop="abrirModalGrabar(cuota)">
+                      Abonar
+                    </button>
+                    <button class="btn btn-secondary btn-sm" @click.stop="abrirModalEdicion(cuota)"
+                      style="margin-right: 3px;">
+                      Abonos
+                    </button>
+                    <button class="btn btn-danger btn-sm" @click.stop="eliminarUnaCuota(cuota.id)"
+                      :disabled="nivel !== 'ADMIN'">
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -486,6 +652,31 @@ export default {
   /* Permite que el ancho de las celdas se ajuste al contenido */
 }
 
+/* Contenedor para la tabla con encabezado fijo */
+.table-wrapper {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: auto;
+  position: relative;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+/* Encabezado sticky */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f8f9fa;
+}
+
+.sticky-header th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+
 /* Optimiza la columna de Observación para texto largo */
 .custom-table td:nth-child(14) {
   max-width: 150px;
@@ -504,5 +695,24 @@ export default {
 
 tr {
   cursor: pointer;
+}
+
+/* Estilos para el checkbox histórico */
+.checkbox-historico {
+  margin-bottom: 0 !important;
+  padding-bottom: 0.375rem;
+  /* Alineación con inputs */
+}
+
+.checkbox-large {
+  width: 1.25rem !important;
+  /* 25% más grande que el tamaño estándar (1rem) */
+  height: 1.25rem !important;
+  cursor: pointer;
+  margin-top: 0 !important;
+}
+
+.checkbox-large:focus {
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
 }
 </style>

@@ -12,7 +12,8 @@ from django.db.models.functions import TruncMonth
 
 class Clase1(APIView):
     def get(self, request):
-        data = Presupuesto.objects.order_by('-fecha_creacion').all()
+        # Excluir contratos descartados (estado=1)
+        data = Presupuesto.objects.filter(estado=0).order_by('-fecha_creacion').all()
         datos_json = PresupuestoSerializer(data, many=True)
         return JsonResponse({"data": datos_json.data}, status=HTTPStatus.OK)
 
@@ -33,7 +34,7 @@ class Clase1(APIView):
                             status=HTTPStatus.BAD_REQUEST)
         except Exception as e:
             print("Unexpected Error:", str(e))
-            return Response({"estado": "error", "mensaje": "Ocurrió un error inesperado en el servidor."},
+            return Response({"estado": "error", "mensaje": "Ocurrio un error inesperado en el servidor."},
                             status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
 class Clase2(APIView):
@@ -45,7 +46,7 @@ class Clase2(APIView):
         except Presupuesto.DoesNotExist:
             return Response({"error": "Presupuesto no encontrado."}, status=HTTPStatus.NOT_FOUND)
         except Exception as e:
-            return Response({"error": "Ocurrió un error inesperado."},
+            return Response({"error": "Ocurrio un error inesperado."},
                             status=HTTPStatus.INTERNAL_SERVER_ERROR)
      
     def put(self, request, id):
@@ -59,7 +60,7 @@ class Clase2(APIView):
         except Presupuesto.DoesNotExist:
             return Response({"error": "Presupuesto no encontrado."}, status=HTTPStatus.NOT_FOUND)
         except Exception as e:
-            return Response({"error": f"Ocurrió un error inesperado al modificar: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Ocurrio un error inesperado al modificar: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def delete(self, request, id):
         try:
@@ -69,7 +70,7 @@ class Clase2(APIView):
         except presu.DoesNotExist:
             raise NotFound(f"No se encontró : {id}")
         except Exception as e:
-            return Response({"error": f"Ocurrió un error inesperado al eliminar: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Ocurrio un error inesperado al eliminar: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
     
 class Clase3(APIView):
     def get(self, request, id):
@@ -78,7 +79,7 @@ class Clase3(APIView):
             serializer = PresupuestoSerializer(pre)
             return Response({"data": serializer.data}, status=HTTPStatus.OK)
         except Exception as e:
-            return Response({"error": "Ocurrió un error inesperado."},
+            return Response({"error": "Ocurrio un error inesperado."},
                             status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
 class Clase4(APIView):
@@ -88,14 +89,14 @@ class Clase4(APIView):
             serializer = PresupuestoSerializer(cliente)
             return Response({"data": serializer.data}, status=HTTPStatus.OK)
         except Exception as e:
-            return Response({"error": "Ocurrió un error inesperado."},
+            return Response({"error": "Ocurrio un error inesperado."},
                             status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
 class PresupuestoListAPIView(APIView):
     
     def get(self, request):
-        # 1. Obtener el Queryset base
-        queryset = Presupuesto.objects.order_by('fecha_creacion').all()
+        # 1. Obtener el Queryset base - EXCLUIR contratos descartados (estado=1)
+        queryset = Presupuesto.objects.filter(estado=0).order_by('fecha_creacion').all()
         
         # 2. Obtener los parámetros de la URL
         nombre = request.query_params.get('nombre', None)
@@ -145,14 +146,53 @@ class PresupuestoListAPIView(APIView):
 # --- VISTA DEDICADA SOLO PARA ACTUALIZAR EL CAMPO 'ESTADO' (Usando PATCH) ---
 class PresupuestoEstadoUpdateAPIView(APIView):
     
-    # ✅ CAMBIO REALIZADO: Maneja la solicitud PATCH (Actualización Parcial)
     def patch(self, request, id): 
         
         # 1. Buscar la instancia del Presupuesto por ID
         try:
             presupuesto = Presupuesto.objects.get(id=id)
         except Presupuesto.DoesNotExist:
-            raise NotFound(f"No se encontró ningún Presupuesto con ID: {id}")
+            raise NotFound(f"No se encontro ningun Presupuesto con ID: {id}")
+        
+        # 2. Obtener el nuevo estado (esperamos 'estado' como entero: 1 o 0)
+        nuevo_estado_raw = request.data.get('estado')
+
+        if nuevo_estado_raw is None:
+            return Response({"estado": "error", "mensaje": "El campo 'estado' (1 o 0) es requerido para esta operacion."},
+                            status=HTTPStatus.BAD_REQUEST)
+        
+        try:
+            # Convertir el valor a entero y validar que sea 0 o 1
+            nuevo_estado = int(nuevo_estado_raw)
+            if nuevo_estado not in [0, 1]:
+                 raise ValueError
+        except ValueError:
+             return Response({"estado": "error", "mensaje": "El valor de 'estado' debe ser 1 (Habilitado) o 0 (Deshabilitado)."},
+                            status=HTTPStatus.BAD_REQUEST)
+
+        # 3. Actualizar solo el campo 'estado' y guardar
+        try:
+            presupuesto.estado = nuevo_estado
+            presupuesto.save(update_fields=['estado'])
+            
+            return Response({"estado": "ok", 
+                             "mensaje": f"Estado del Presupuesto {id} actualizado a '{nuevo_estado}' exitosamente."},
+                            status=HTTPStatus.OK)
+        except Exception as e:
+            return Response({"error": f"Ocurrio un error inesperado al actualizar el estado: {e}"},
+                            status=HTTPStatus.INTERNAL_SERVER_ERROR)
+# ----------------------------------------------------------------------
+
+# --- VISTA PARA ACTUALIZAR ESTADO POR RUT Y PATENTE ---
+class PresupuestoEstadoByRutPatenteAPIView(APIView):
+    
+    def patch(self, request, rut, patente): 
+        
+        # 1. Buscar la instancia del Presupuesto por RUT y PATENTE
+        try:
+            presupuesto = Presupuesto.objects.get(rut_cliente=rut, patente_vehiculo=patente)
+        except Presupuesto.DoesNotExist:
+            raise NotFound(f"No se encontró ningún Presupuesto con RUT: {rut} y PATENTE: {patente}")
         
         # 2. Obtener el nuevo estado (esperamos 'estado' como entero: 1 o 0)
         nuevo_estado_raw = request.data.get('estado')
@@ -165,23 +205,20 @@ class PresupuestoEstadoUpdateAPIView(APIView):
             # Convertir el valor a entero y validar que sea 0 o 1
             nuevo_estado = int(nuevo_estado_raw)
             if nuevo_estado not in [0, 1]:
-                 # Si no es 0 ni 1, lanza error
                  raise ValueError
         except ValueError:
-             return Response({"estado": "error", "mensaje": "El valor de 'estado' debe ser 1 (Habilitado) o 0 (Deshabilitado)."},
+             return Response({"estado": "error", "mensaje": "El valor de 'estado' debe ser 1 (Descartado) o 0 (Activo)."},
                             status=HTTPStatus.BAD_REQUEST)
 
         # 3. Actualizar solo el campo 'estado' y guardar
         try:
             presupuesto.estado = nuevo_estado
-            # save(update_fields=['estado']) asegura que SOLO este campo se actualice en la DB
-            presupuesto.save(update_fields=['estado']) 
+            presupuesto.save(update_fields=['estado'])
             
-            return Response({"estado": "ok", 
-                             "mensaje": f"Estado del Presupuesto {id} actualizado a '{nuevo_estado}' exitosamente."},
+            mensaje = f"Presupuesto {rut}-{patente} {'descartado' if nuevo_estado == 1 else 'reactivado'} exitosamente."
+            return Response({"estado": "ok", "mensaje": mensaje},
                             status=HTTPStatus.OK)
         except Exception as e:
-            # Manejo de errores genéricos durante el guardado
             return Response({"error": f"Ocurrió un error inesperado al actualizar el estado: {e}"},
                             status=HTTPStatus.INTERNAL_SERVER_ERROR)
 # ----------------------------------------------------------------------

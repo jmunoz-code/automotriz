@@ -43,7 +43,7 @@ export default {
       precio_venta: null,
       id_vendedor: null,
       valor_venta_total: null,
-      interes_mensual: null,
+      interes_mensual: 3.5,
       valor_cuota: null,
       tipo_pago_seleccionado: 'credito',
     });
@@ -164,16 +164,36 @@ export default {
     };
 
     const registroAEliminarId = ref(null);
+    const registroAEliminarRut = ref(null);
+    const registroAEliminarPatente = ref(null);
     const mostrarModalEliminar = ref(false);
 
-    const abrirModalEliminar = (id) => {
+    // Variables para el modal de deshabilitar
+    const contratoADeshabilitar = ref(null);
+    const mostrarModalDeshabilitar = ref(false);
+
+    const abrirModalEliminar = (id, rut, patente) => {
       registroAEliminarId.value = id;
+      registroAEliminarRut.value = rut;
+      registroAEliminarPatente.value = patente;
       mostrarModalEliminar.value = true;
     };
 
     const cerrarModalEliminar = () => {
       registroAEliminarId.value = null;
+      registroAEliminarRut.value = null;
+      registroAEliminarPatente.value = null;
       mostrarModalEliminar.value = false;
+    };
+
+    const abrirModalDeshabilitar = (contrato) => {
+      contratoADeshabilitar.value = contrato;
+      mostrarModalDeshabilitar.value = true;
+    };
+
+    const cerrarModalDeshabilitar = () => {
+      contratoADeshabilitar.value = null;
+      mostrarModalDeshabilitar.value = false;
     };
 
     const mostrarMensaje = (texto, tipo) => {
@@ -245,18 +265,28 @@ export default {
 
     // MODIFICAR ESTADO DE CONTRATO
 
+    const manejarCambioEstadoContrato = (contrato) => {
+      // IMPORTANTE: En el backend, estado=0 es HABILITADO, estado=1 es DESHABILITADO
+      // El checkbox muestra el estado "habilitado" visualmente
+      // Si contrato.estado es false (deshabilitado visualmente), el valor en BD debe ser 1
+      // Si contrato.estado es true (habilitado visualmente), el valor en BD debe ser 0
+
+      // Si se está deshabilitando (cambiando de true/0 a false/1), mostrar modal de confirmación
+      if (!contrato.estado) {
+        // Revertir temporalmente el cambio en el checkbox
+        contrato.estado = true;
+        // Mostrar modal de confirmación
+        abrirModalDeshabilitar(contrato);
+      } else {
+        // Si se está habilitando (cambiando de false/1 a true/0), proceder directamente
+        actualizarEstadoContrato(contrato);
+      }
+    };
+
     const actualizarEstadoContrato = async (contrato) => {
-      // Usamos el ID del contrato (presupuesto) para la URL
-
       const contratoId = contrato.id;
-
-
       const nuevoHabilitado = contrato.estado;
-
-
-      // 💡 Paso 1: Mapear el booleano del Frontend al entero del Backend (1 o 0)
-      // El backend espera el campo 'estado' como IntegerField.
-      const nuevoEstadoDB = nuevoHabilitado ? 1 : 0;
+      const nuevoEstadoDB = nuevoHabilitado ? 0 : 1;
 
       if (!contratoId) {
         mostrarMensaje('Error: No se encontró el ID del contrato para actualizar.', 'error');
@@ -265,43 +295,53 @@ export default {
 
       isLoading.value = true;
 
-      // ❌ CORRECCIÓN 1: La URL debe usar el ID y una barra diagonal al final.
-      // Antes: presupuesto/estado${contrato}/ 
-      // Ahora: presupuesto/estado/ID/
       const apiUrl = `${import.meta.env.VITE_API_URL}presupuesto/estado/${contratoId}/`;
 
       try {
         const response = await fetch(apiUrl, {
-          method: 'PATCH', // Es correcto usar PATCH para actualización parcial
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
-          // ❌ CORRECCIÓN 2: El nombre del campo en el body debe ser 'estado' 
-          // y el valor debe ser el entero (1 o 0).
-          body: JSON.stringify({
-            estado: nuevoEstadoDB
-          }),
+          body: JSON.stringify({ estado: nuevoEstadoDB }),
         });
 
         if (response.ok) {
-          // Usa el valor booleano para el mensaje
           mostrarMensaje(`Presupuesto #${contratoId} actualizado a Habilitado: ${nuevoHabilitado ? 'SÍ' : 'NO'}.`, 'success');
-          // NO se revierte el estado aquí, ya que el cambio visual fue exitoso
         } else {
-          // Si la API falla, revertimos el checkbox al estado anterior
-          contrato.habilitado = !nuevoHabilitado;
+          contrato.estado = !nuevoHabilitado;
           const errorData = await response.json();
-          console.error('Error al actualizar estado:', response.status, errorData);
+          console.error('ERROR al actualizar estado:', response.status, errorData);
           mostrarMensaje('Error al guardar el cambio en el servidor. Revirtiendo estado.', 'error');
         }
       } catch (error) {
-        // Si hay error de conexión, revertimos el checkbox
-        contrato.habilitado = !nuevoHabilitado;
-        console.error('Error de conexión:', error);
+        contrato.estado = !nuevoHabilitado;
+        console.error('ERROR de conexión:', error);
         mostrarMensaje('Error de conexión con el servidor. No se pudo guardar.', 'error');
       } finally {
         isLoading.value = false;
       }
+    };
+
+    const deshabilitarContratoConfirmado = async () => {
+      if (!contratoADeshabilitar.value) {
+        cerrarModalDeshabilitar();
+        return;
+      }
+
+      // Guardar el ID del contrato antes de actualizarlo
+      const contratoId = contratoADeshabilitar.value.id;
+
+      // Actualizar el estado del contrato a deshabilitado
+      contratoADeshabilitar.value.estado = false;
+      await actualizarEstadoContrato(contratoADeshabilitar.value);
+
+      // IMPORTANTE: Eliminar el contrato de la lista visible inmediatamente
+      // ya que los contratos descartados (estado=1) no deben aparecer en ningún listado
+      datos.value = datos.value.filter(contrato => contrato.id !== contratoId);
+
+      mostrarMensaje('Contrato descartado. No aparecerá en listados, cuotas ni informes.', 'success');
+      cerrarModalDeshabilitar();
     };
 
     const obtenerCliente = async (rut) => {
@@ -988,8 +1028,53 @@ export default {
       }
 
       try {
+        isLoading.value = true;
+        const rut = registroAEliminarRut.value;
+        const patente = registroAEliminarPatente.value;
+
+        // 1. Eliminar los pagos en detalle_pago
+        if (rut && patente) {
+          const apiUrlDetallepagos = `${import.meta.env.VITE_API_URL}detallepagocuotas/?rut=${rut}&patente=${patente}`;
+          console.log('Eliminando pagos de detalle_pago:', apiUrlDetallepagos);
+          try {
+            const responsePagos = await fetch(apiUrlDetallepagos, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            if (responsePagos.ok) {
+              console.log('Pagos de detalle_pago eliminados exitosamente.');
+            } else {
+              console.warn('No se pudieron eliminar todos los pagos o no existían pagos.');
+            }
+          } catch (error) {
+            console.error('Error eliminando pagos:', error);
+          }
+
+          // 2. Eliminar las cuotas en pago_cuotas
+          const apiUrlCuotas = `${import.meta.env.VITE_API_URL}pagocuotas/?rut=${rut}&patente=${patente}`;
+          console.log('Eliminando cuotas de pago_cuotas:', apiUrlCuotas);
+          try {
+            const responseCuotas = await fetch(apiUrlCuotas, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            if (responseCuotas.ok) {
+              console.log('Cuotas de pago_cuotas eliminadas exitosamente.');
+            } else {
+              console.warn('No se pudieron eliminar todas las cuotas o no existían cuotas.');
+            }
+          } catch (error) {
+            console.error('Error eliminando cuotas:', error);
+          }
+        }
+
+        // 3. Eliminar el contrato
         const apiUrl = `${import.meta.env.VITE_API_URL}presupuesto/${registroAEliminarId.value}/`;
-        console.log('Deletion URL:', apiUrl);
+        console.log('Eliminando contrato:', apiUrl);
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {
@@ -998,17 +1083,18 @@ export default {
         });
 
         if (response.ok) {
-          mostrarMensaje('Contract Deleted successfully!', 'success');
+          mostrarMensaje('Contrato y sus datos asociados eliminados exitosamente!', 'success');
           cargarListaDeContratos();
         } else {
           const errorData = await response.json();
-          mostrarMensaje(`Error deleting Contract: ${errorData.message || response.statusText}`, 'error');
-          console.error('Error deleting Contract:', errorData);
+          mostrarMensaje(`Error eliminando contrato: ${errorData.message || response.statusText}`, 'error');
+          console.error('Error eliminando contrato:', errorData);
         }
       } catch (error) {
-        mostrarMensaje('Connection error with the server.', 'error');
-        console.error('Connection error:', error);
+        mostrarMensaje('Error de conexión con el servidor.', 'error');
+        console.error('Error de conexión:', error);
       } finally {
+        isLoading.value = false;
         cerrarModalEliminar();
       }
     };
@@ -1022,7 +1108,16 @@ export default {
 
           console.log(data);
 
-          datos.value = data.data;
+          // Convertir el estado de BD (0/1) a booleano para el checkbox (true/false)
+          // BD: 0 = habilitado -> Checkbox: true
+          // BD: 1 = deshabilitado -> Checkbox: false
+          // FILTRAR: Solo mostrar contratos habilitados (estado = 0), excluir descartados (estado = 1)
+          datos.value = data.data
+            .filter(contrato => contrato.estado !== 1) // Excluir contratos descartados
+            .map(contrato => ({
+              ...contrato,
+              estado: contrato.estado === 0 // Si estado es 0, checkbox true (habilitado)
+            }));
 
         } else {
           console.error('Error loading contract list:', response.statusText);
@@ -1087,7 +1182,7 @@ export default {
         precio_venta: null,
         id_vendedor: null,
         valor_venta_total: null,
-        interes_mensual: null,
+        interes_mensual: 3.5,
         valor_cuota: null,
         tipo_pago_seleccionado: 'credito',
         calculo: null
@@ -1165,6 +1260,12 @@ export default {
       filtroContratos, //
       contratosFiltrados, //
       actualizarEstadoContrato,
+      manejarCambioEstadoContrato,
+      mostrarModalDeshabilitar,
+      abrirModalDeshabilitar,
+      cerrarModalDeshabilitar,
+      deshabilitarContratoConfirmado,
+      contratoADeshabilitar,
       nivel, // Added nivel to the return object
     };
   },
@@ -1428,8 +1529,8 @@ export default {
                   <label for="interes" class="col-md-2 col-form-label negrita">Interés %</label>
                   <div class="col-md-3">
                     <input type="number" step="0.1" class="form-control form-control-sm negrita" size="10"
-                      maxlength="10" id="interes" name="interes" v-model="formData.interes_mensual"
-                      style="width: 200px" />
+                      maxlength="10" id="interes" name="interes" v-model="formData.interes_mensual" style="width: 200px"
+                      :disabled="nivel !== 'ADMIN'" />
                   </div>
                 </div>
                 <div class="mb-3 row align-items-center">
@@ -1524,7 +1625,8 @@ export default {
                 <td style="text-align: center;" title="Creacion Cuotas">{{ contrato.numero_cuotas }}</td>
                 <td style="text-align: center;">{{ formatearMilesConPunto(contrato.valor_cuota) }}</td>
                 <td>
-                  <button type="button" class="btn btn-danger btn-sm" @click.stop="abrirModalEliminar(contrato.id)"
+                  <button type="button" class="btn btn-danger btn-sm"
+                    @click.stop="abrirModalEliminar(contrato.id, contrato.rut_cliente, contrato.patente_vehiculo)"
                     :disabled="nivel !== 'ADMIN'">
                     Eliminar
                   </button>
@@ -1548,15 +1650,15 @@ export default {
                   </button>
                 </td>
                 <td style="text-align: center;">
-                  <button type="button" class="btn btn-info btn-sm" @click="generarCuotas(contrato)">
+                  <button type="button" class="btn btn-info btn-sm" @click.stop="generarCuotas(contrato)">
                     Cuotas
                   </button>
                 </td>
 
-                <td style="text-align: center;">
+                <td style="text-align: center;" @click.stop>
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" :id="'flexSwitchCheckChecked-' + contrato.id"
-                      v-model="contrato.estado" @change="actualizarEstadoContrato(contrato)"
+                      v-model="contrato.estado" @change="manejarCambioEstadoContrato(contrato)"
                       :disabled="nivel !== 'ADMIN'" />
                     <!-- Habilitado visualmente según el booleano -->
                   </div>
@@ -1582,7 +1684,14 @@ export default {
           <button type="button" class="btn-close" @click="cerrarModalEliminar" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          ¿Estás seguro de que deseas eliminar este contrato? Esta acción no se puede deshacer.
+          <p>¿Estás seguro de que deseas eliminar este contrato?</p>
+          <p><strong>Esta acción eliminará:</strong></p>
+          <ul>
+            <li>El contrato seleccionado</li>
+            <li>Todas las cuotas asociadas en pago_cuotas</li>
+            <li>Todos los pagos realizados en detalle_pagos</li>
+          </ul>
+          <p class="text-danger"><strong>Esta acción no se puede deshacer.</strong></p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" @click="cerrarModalEliminar">Cancelar</button>
@@ -1592,6 +1701,36 @@ export default {
     </div>
   </div>
   <div v-if="mostrarModalEliminar" class="modal-backdrop fade show"></div>
+
+  <!-- Modal de confirmación para deshabilitar contrato -->
+  <div v-if="mostrarModalDeshabilitar" class="modal fade show" tabindex="-1" style="display: block;" aria-modal="true"
+    role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title">Confirmar Deshabilitación de Contrato</h5>
+          <button type="button" class="btn-close" @click="cerrarModalDeshabilitar" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>¿Estás seguro de que deseas deshabilitar este contrato?</strong></p>
+          <p>Al deshabilitar este contrato:</p>
+          <ul>
+            <li>Desaparecerá de la lista de contratos activos</li>
+            <li>Desaparecerá de pago de cuotas</li>
+            <li>Desaparecerá de todos los informes</li>
+          </ul>
+          <p class="text-warning"><strong>Nota:</strong> Esta acción puede ser revertida volviendo a habilitar el
+            contrato.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cerrarModalDeshabilitar">Cancelar</button>
+          <button type="button" class="btn btn-warning" @click="deshabilitarContratoConfirmado">Deshabilitar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-if="mostrarModalDeshabilitar" class="modal-backdrop fade show"></div>
+
   <Footer></Footer>
 </template>
 
@@ -1606,5 +1745,22 @@ export default {
 
 .custom-table {
   min-width: 1200px;
+}
+
+/* Agrandar checkbox "Descartar" en un 25% */
+.form-check-input {
+  width: 1.5625em;
+  /* 1.25em * 1.25 = 1.5625em (25% más grande) */
+  height: 1.5625em;
+  margin-top: 0;
+  cursor: pointer;
+}
+
+/* Ajustar el contenedor del switch para centrarlo mejor */
+.form-check.form-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.5625em;
 }
 </style>
