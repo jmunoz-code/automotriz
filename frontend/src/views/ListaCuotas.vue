@@ -319,6 +319,7 @@
               const grupos = new Map();
               const cuotas = cuotasConCalculoDeCapital.value;
 
+
               cuotas.forEach((cuota) => {
                 const key = `${cuota.rut_cliente}-${cuota.patente}`;
 
@@ -348,6 +349,8 @@
 
               // Retornar solo grupos con deuda
               return Array.from(grupos.values()).filter(g => g.tiene_deuda);
+
+
             });
 
             // --- CUOTAS DEL CLIENTE SELECCIONADO (DETALLE) ---
@@ -600,7 +603,7 @@
                   <td>
                     <textarea class="form-control form-control-sm" v-model="cuota.observacion"
                       @blur="actualizarObservacion(cuota.id, cuota.observacion)" placeholder="Agregar observación"
-                      rows="1" :disabled="nivel !== 'ADMIN'">
+                      rows="1">
                     </textarea>
                   </td>
                   <td v-if="!mostrarHistorico" style="width: 310px;">
