@@ -14,17 +14,18 @@ from decimal import Decimal, ROUND_HALF_UP, getcontext # ⬅️ Importamos getco
 getcontext().prec = 28 # Usar alta precisión para los cálculos
 
 # Importa tus serializadores y modelos
-# 🟢 CORREGIDO: Importar el serializador con el nombre 'GenerarCuotasSerializer'
-from generarCuotas.serializers import GenerarCuotasSerializer 
+# 🟢 CORREGIDO: Importar el serializador de PagoCuotas para la respuesta y el modelo correcto
+from pagoCuotas.serializers import PagoCuotasSerializer 
 
-from .models import GenerarCuotas as Cuota
+# 🟢 IMPORTANTE: Usamos el modelo PagoCuotas real, donde se consultan los pagos
+from pagoCuotas.models import PagoCuotas as Cuota
 
 
 # 🟢 Nombre de Clase Consistente
 class GenerarCuotasAPIView(APIView):
  
-    # 🟢 CAMBIO: Ahora usamos GET para recibir los parámetros por URL
-    def Post(self, request, format=None):
+    # 🟢 CAMBIO: Método POST para generar cuotas recibiendo parámetros por query params
+    def post(self, request, format=None):
     
         # 1. Obtener datos de la URL (query_params)
         params = request.query_params
@@ -53,6 +54,9 @@ class GenerarCuotasAPIView(APIView):
             saldo_pendiente = monto_prestamo 
  
             with transaction.atomic():
+                # 🟢 LIMPIEZA PREVENTIVA: Eliminar cuotas previas de este registro para evitar errores de duplicados (Idempotencia)
+                Cuota.objects.filter(rut_cliente=rut_cliente, patente=patente).delete()
+
                 for i in range(cantidad_cuotas):
                     # Uso de dateutil.relativedelta para el cálculo de meses (importado arriba)
                     fecha_cuota = (fecha_vencimiento_inicial + relativedelta(months=i))
@@ -70,7 +74,7 @@ class GenerarCuotasAPIView(APIView):
                         capital_amortizado_esta_cuota += saldo_pendiente.quantize(Decimal('0.01'))
                         saldo_pendiente = Decimal('0.00') # Forzamos el saldo a cero
                         
-                    # 4. Creación de la instancia del modelo (Grabar en BDD)
+                    # 4. Creación de la instancia del modelo (Grabar en BDD - Tabla REAL de pagos)
                     cuota = Cuota.objects.create(
                         rut_cliente=rut_cliente,
                         patente=patente,
@@ -78,14 +82,17 @@ class GenerarCuotasAPIView(APIView):
                         fecha_vencimiento=fecha_cuota,
                         monto_cuota=monto_cuota_fija,
                         abono_capital=capital_amortizado_esta_cuota, 
+                        # Campos adicionales necesarios para PagoCuotas
+                        monto_prestamo=monto_prestamo,
+                        interes_mensual=interes_mensual,
                         fecha_pago=None,
                         observacion=None,
                     )
                     generated_cuotas.append(cuota)
             
-            # 5. Respuesta (Usando el Serializador solo para el OUTPUT)
-            response_serializer = GenerarCuotasSerializer(generated_cuotas, many=True)
-            return Response({'message': 'Cuotas generadas exitosamente y guardadas en la base de datos.', 'data': response_serializer.data}, status=status.HTTP_201_CREATED)
+            # 5. Respuesta (Usando el Serializador de PagoCuotas)
+            response_serializer = PagoCuotasSerializer(generated_cuotas, many=True)
+            return Response({'message': 'Cuotas generadas exitosamente y guardadas en la base de datos de pagos.', 'data': response_serializer.data}, status=status.HTTP_201_CREATED)
 
         except KeyError as ke:
             # Error en datos de entrada (falta un campo requerido en la URL)

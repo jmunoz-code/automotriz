@@ -24,7 +24,6 @@ export default {
     const nivel = ref(localStorage.getItem('user_nivel'));
 
 
-
     const inputText = ref('');
     const mensaje = ref('');
     const tipoMensaje = ref('');
@@ -449,7 +448,7 @@ export default {
                 <div class="col-md-auto ms-2">
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
-                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
+                <div class="col-md-auto ms-2">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.rut)">
                     Modificar
                   </button>

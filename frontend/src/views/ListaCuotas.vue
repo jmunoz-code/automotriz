@@ -347,7 +347,11 @@
                 }
               });
 
-              // Retornar solo grupos con deuda
+              // Retornar solo grupos con deuda, A MENOS que estemos en modo Histórico
+              if (mostrarHistorico.value) {
+                return Array.from(grupos.values());
+              }
+
               return Array.from(grupos.values()).filter(g => g.tiene_deuda);
 
 

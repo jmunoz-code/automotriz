@@ -22,6 +22,23 @@ class Clase1(APIView):
         if 'nombre_cliente' in modified_data and modified_data['nombre_cliente']:
             modified_data['nombre_cliente'] = modified_data['nombre_cliente'].upper()
 
+        # VALIDACIÓN DE DUPLICADOS: Verificar si ya existe un contrato activo con este RUT y Patente
+        rut_cliente = modified_data.get('rut_cliente')
+        patente_vehiculo = modified_data.get('patente_vehiculo')
+
+        if rut_cliente and patente_vehiculo:
+            # Buscamos si ya existe algún registro (independiente del estado, por seguridad)
+            existe = Presupuesto.objects.filter(
+                rut_cliente=rut_cliente, 
+                patente_vehiculo=patente_vehiculo
+            ).exists()
+            
+            if existe:
+                return Response({
+                    "estado": "error", 
+                    "mensaje": f"Ya existe un contrato registrado para el RUT {rut_cliente} y Patente {patente_vehiculo}. No se permiten duplicados."
+                }, status=HTTPStatus.BAD_REQUEST)
+
         serializer = PresupuestoSerializer(data=modified_data)
         try:
             serializer.is_valid(raise_exception=True)

@@ -421,31 +421,31 @@ export default {
       console.log('rut cliente:', rut_cliente);
 
       if (!rut_cliente || !patente || !numero_cuota || !monto_cuota || !fecha_inicio_pago) {
-        alert('Faltan datos esenciales para generar las cuotas (RUT, Patente, Cantidad de Cuotas, Monto de Cuota o Fecha Inicial). O Es una venta al contado');
         console.error('Datos faltantes para generar cuotas:', { rut_cliente, patente, numero_cuota, monto_cuota, fecha_inicio_pago, monto_prestamo });
+        mostrarMensaje('Faltan datos esenciales para generar las cuotas. Verifique RUT, Patente, Cantidad de Cuotas, Monto de Cuota y Fecha Inicial.', 'error');
         return;
       }
 
-      const payload = {
+      // Construir la URL con query parameters (como espera el backend)
+      const params = new URLSearchParams({
         rut_cliente: rut_cliente,
         patente: patente,
         numero_cuota: numero_cuota,
         monto_cuota: monto_cuota,
         fecha_vencimiento: fecha_inicio_pago,
         monto_prestamo: monto_prestamo,
-        interes_mensual: interes_mensual
-      };
+        interes_mensual: interes_mensual || 0
+      });
 
-      console.log('Enviando datos al backend para generar cuotas:', payload);
-      console.log(`${import.meta.env.VITE_API_URL}pagocuotas/`);
+      const apiUrl = `${import.meta.env.VITE_API_URL}generarCuotas/?${params.toString()}`;
+      console.log('Enviando datos al backend para generar cuotas:', apiUrl);
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}pagocuotas/`, {
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
+          }
         });
 
         if (!response.ok) {
@@ -455,10 +455,10 @@ export default {
 
         const data = await response.json();
         console.log('Cuotas generadas con éxito:', data);
-        alert('Cuotas generadas con éxito.');
+        mostrarMensaje('Cuotas generadas con éxito!', 'success');
       } catch (error) {
         console.error('Error al generar las cuotas:', error);
-        alert(`Error al generar las cuotas: ${error.message}`);
+        mostrarMensaje(`Error al generar las cuotas: ${error.message}`, 'error');
       }
     };
 
@@ -913,6 +913,18 @@ export default {
           mostrarMensaje('Por favor, ingrese la patente del vehículo.', 'error');
           return;
         }
+
+        // Verificar si ya existe un contrato con el mismo RUT y patente
+        const contratoExistente = datos.value.find(
+          contrato => contrato.rut_cliente === formData.value.rut &&
+            contrato.patente_vehiculo === formData.value.patente
+        );
+
+        if (contratoExistente) {
+          mostrarMensaje(`Ya existe un contrato para el RUT ${formData.value.rut} con la patente ${formData.value.patente}. No se pueden crear contratos duplicados.`, 'error');
+          return;
+        }
+
         if (!formData.value.id_vendedor) {
           mostrarMensaje('Por favor, seleccione un vendedor.', 'error');
           return;
@@ -1004,6 +1016,40 @@ export default {
 
         if (response.ok) {
           mostrarMensaje('¡Contrato Creado exitosamente!', 'success');
+
+          // Generar cuotas automáticamente si es un contrato a crédito con cuotas
+          console.log('--- REVISIÓN GENERACIÓN CUOTAS AUTO ---');
+          console.log('Tipo Pago:', formData.value.tipo_pago_seleccionado);
+          console.log('Num Cuotas:', formData.value.numero_cuotas);
+
+          if (formData.value.tipo_pago_seleccionado === 'credito' && formData.value.numero_cuotas > 0) {
+            console.log('>>> CONDICIONES OK. Intentando generar cuotas...');
+            // Guardar los datos ANTES de limpiar el formulario
+            const contratoParaCuotas = {
+              rut_cliente: formData.value.rut,
+              patente_vehiculo: formData.value.patente,
+              numero_cuotas: formData.value.numero_cuotas,
+              precio_venta: formData.value.precio_venta,
+              valor_pie: formData.value.valor_pie,
+              interes_mensual: formData.value.interes_mensual,
+              valor_cuota: pasar_valor,
+              fecha_inicio_pago: formData.value.fecha
+            };
+
+            console.log('Datos preparados:', contratoParaCuotas);
+
+            try {
+              await generarCuotas(contratoParaCuotas);
+              console.log('>>> generarCuotas() finalizado.');
+            } catch (errorGen) {
+              console.error('>>> ERROR en generarCuotas():', errorGen);
+              mostrarMensaje('Error generando cuotas: ' + errorGen.message, 'error');
+            }
+
+          } else {
+            console.warn('>>> NO SE GENERAN CUOTAS. Condición no cumplida (Contado o 0 cuotas).');
+          }
+
           cargarListaDeContratos();
           limpiarFormulario();
         } else {
@@ -1106,7 +1152,13 @@ export default {
         if (response.ok) {
           const data = await response.json();
 
-          console.log(data);
+          console.log('Total contratos recibidos:', data.data.length);
+          const contratoBuscado = data.data.find(c => c.patente_vehiculo === 'GVTL29');
+          if (contratoBuscado) {
+            console.log('✅ REVISIÓN: El contrato GVTL29 SÍ fue recibido del backend. Estado:', contratoBuscado.estado);
+          } else {
+            console.error('❌ REVISIÓN: El contrato GVTL29 NO llegó en la respuesta del backend.');
+          }
 
           // Convertir el estado de BD (0/1) a booleano para el checkbox (true/false)
           // BD: 0 = habilitado -> Checkbox: true

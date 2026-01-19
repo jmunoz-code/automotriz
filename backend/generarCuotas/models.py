@@ -28,8 +28,8 @@ class GenerarCuotas(models.Model):
         verbose_name = "Generar Cuotas"
         verbose_name_plural = "generar cuotas"
         
-        # Asegura que no haya dos cuotas con el mismo número para el mismo préstamo/patente.
-        unique_together = ('patente', 'numero_cuota')
+        # Asegura que no haya dos cuotas con el mismo número para el mismo préstamo/patente/cliente.
+        unique_together = ('rut_cliente', 'patente', 'numero_cuota')
 
     def __str__(self):
         return f"Cuota {self.numero_cuota} - Patente: {self.patente}"

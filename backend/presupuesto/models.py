@@ -31,3 +31,5 @@ class Presupuesto(models.Model):
         db_table='presupuesto'
         verbose_name = 'Presupuesto'
         verbose_name_plural = 'Presupuesto'
+        # Prevenir contratos duplicados con mismo RUT y patente
+        unique_together = [['rut_cliente', 'patente_vehiculo']]

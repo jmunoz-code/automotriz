@@ -98,6 +98,16 @@ export default {
     };
     // --- FIN DE LA NUEVA LÓGICA DE FECHA ---
 
+    // --- DETECCIÓN DE DISPOSITIVO MÓVIL ---
+    /**
+     * Detecta si el usuario está accediendo desde un dispositivo móvil
+     */
+    const isMobile = ref(false);
+    const detectMobile = () => {
+      isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+    };
+    // --- FIN DETECCIÓN DE DISPOSITIVO MÓVIL ---
+
     /**
      * Formats numbers with a period for thousands.
      * @param {number} valor - The number to format.
@@ -728,6 +738,7 @@ export default {
       }
     };
 
+
     /**
      * Function to delete a contract record (called from the confirmation modal).
      */
@@ -892,6 +903,7 @@ export default {
     onMounted(() => {
       console.log('Componente Presupuesto montado correctamente.');
 
+      detectMobile(); // Detectar si es móvil
       cargarListaAutomoviles();
       obtenerVendedores();
       // NUEVO: Asignar la fecha actual al campo 'fecha' cuando se monta el componente
@@ -909,6 +921,7 @@ export default {
       mensajeRutInvalido,
       mostrarModalEliminar,
       listaVehiculos,
+      isMobile, // Exponer la variable para detectar móvil
 
       showCalculationSections, // Exponer la propiedad computada
       filteredListaVehiculos, // Exponer la nueva propiedad computada
@@ -946,11 +959,14 @@ export default {
 </script>
 
 <template>
+  <!-- Header solo visible en desktop -->
+  <Header v-if="!isMobile"></Header>
 
-  <div style="text-align: center">
-    <img src="/img/core-img/logo.png" alt="logo" style="width:280px; max-width: 100%; height:auto;" />
-
+  <!-- Logo siempre visible pero responsivo -->
+  <div style="text-align: center; padding: 20px 10px;">
+    <img src="/img/core-img/logo.png" alt="logo" class="logo-responsive" />
   </div>
+
   <div class="page-container">
     <br></br>
     <form @submit.prevent="handleSubmit">
@@ -1111,7 +1127,7 @@ export default {
 
           <div class="results-section" v-if="formData.valor_cuota !== null">
             <p>Monto a Financiar: <strong>{{ formatearMilesConPunto(formData.precio_venta - formData.valor_pie)
-            }}</strong></p>
+                }}</strong></p>
             <p>Valor de Cada Cuota (con interés): <strong style="font-size: medium;">{{
               formatearMilesConPunto(formData.valor_cuota) }}</strong></p>
 
@@ -1553,6 +1569,7 @@ h3 {
     width: 100%;
   }
 
+
   .data-table1 td {
     padding: 10px 0;
   }
@@ -1565,6 +1582,23 @@ h3 {
   .automoviles-list-section table {
     min-width: 600px;
     /* Ensure it doesn't get too squashed */
+  }
+}
+
+/* Logo Responsive Styles */
+.logo-responsive {
+  width: 280px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Ajustes adicionales para móvil */
+@media (max-width: 480px) {
+  .logo-responsive {
+    width: 200px;
+    max-width: 90%;
   }
 }
 </style>
