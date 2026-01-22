@@ -13,6 +13,7 @@ class PagoCuotas(models.Model):
     fecha_pago = models.DateField(null=True)
     observacion = models.CharField(max_length=50, null=True)
     # --- Nuevo campo para el saldo pendiente ---
+    interes_mora = models.IntegerField(null=True)
     
     def __str__(self):
         return f"Cuota {self.numero_cuota} - Cliente: {self.rut_cliente}, Patente: {self.patente}, Vence: {self.fecha_vencimiento}"

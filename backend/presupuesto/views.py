@@ -23,21 +23,7 @@ class Clase1(APIView):
             modified_data['nombre_cliente'] = modified_data['nombre_cliente'].upper()
 
         # VALIDACIÓN DE DUPLICADOS: Verificar si ya existe un contrato activo con este RUT y Patente
-        rut_cliente = modified_data.get('rut_cliente')
-        patente_vehiculo = modified_data.get('patente_vehiculo')
 
-        if rut_cliente and patente_vehiculo:
-            # Buscamos si ya existe algún registro (independiente del estado, por seguridad)
-            existe = Presupuesto.objects.filter(
-                rut_cliente=rut_cliente, 
-                patente_vehiculo=patente_vehiculo
-            ).exists()
-            
-            if existe:
-                return Response({
-                    "estado": "error", 
-                    "mensaje": f"Ya existe un contrato registrado para el RUT {rut_cliente} y Patente {patente_vehiculo}. No se permiten duplicados."
-                }, status=HTTPStatus.BAD_REQUEST)
 
         serializer = PresupuestoSerializer(data=modified_data)
         try:
@@ -102,7 +88,9 @@ class Clase3(APIView):
 class Clase4(APIView):
     def get(self, request, patente):
         try:
-            cliente = Presupuesto.objects.filter(patente_vehiculo=patente).get()
+            cliente = Presupuesto.objects.filter(patente_vehiculo=patente).order_by('-id').first()
+            if not cliente:
+                 return Response({"error": f"No se encontro presupuesto para patente {patente}"}, status=HTTPStatus.NOT_FOUND)
             serializer = PresupuestoSerializer(cliente)
             return Response({"data": serializer.data}, status=HTTPStatus.OK)
         except Exception as e:
@@ -112,8 +100,8 @@ class Clase4(APIView):
 class PresupuestoListAPIView(APIView):
     
     def get(self, request):
-        # 1. Obtener el Queryset base - EXCLUIR contratos descartados (estado=1)
-        queryset = Presupuesto.objects.filter(estado=0).order_by('fecha_creacion').all()
+        # 1. Obtener el Queryset base - INCLUIR TODOS los contratos para el informe
+        queryset = Presupuesto.objects.order_by('fecha_creacion').all()
         
         # 2. Obtener los parámetros de la URL
         nombre = request.query_params.get('nombre', None)
@@ -205,10 +193,10 @@ class PresupuestoEstadoByRutPatenteAPIView(APIView):
     
     def patch(self, request, rut, patente): 
         
-        # 1. Buscar la instancia del Presupuesto por RUT y PATENTE
-        try:
-            presupuesto = Presupuesto.objects.get(rut_cliente=rut, patente_vehiculo=patente)
-        except Presupuesto.DoesNotExist:
+        # 1. Buscar instancias del Presupuesto por RUT y PATENTE
+        presupuestos = Presupuesto.objects.filter(rut_cliente=rut, patente_vehiculo=patente)
+        
+        if not presupuestos.exists():
             raise NotFound(f"No se encontró ningún Presupuesto con RUT: {rut} y PATENTE: {patente}")
         
         # 2. Obtener el nuevo estado (esperamos 'estado' como entero: 1 o 0)
@@ -227,12 +215,12 @@ class PresupuestoEstadoByRutPatenteAPIView(APIView):
              return Response({"estado": "error", "mensaje": "El valor de 'estado' debe ser 1 (Descartado) o 0 (Activo)."},
                             status=HTTPStatus.BAD_REQUEST)
 
-        # 3. Actualizar solo el campo 'estado' y guardar
+        # 3. Actualizar el campo 'estado' para TODOS los registros coincidentes
         try:
-            presupuesto.estado = nuevo_estado
-            presupuesto.save(update_fields=['estado'])
-            
-            mensaje = f"Presupuesto {rut}-{patente} {'descartado' if nuevo_estado == 1 else 'reactivado'} exitosamente."
+            # Usamos update() en el queryset para actualizar todos de una vez
+            presupuestos.update(estado=nuevo_estado)
+             
+            mensaje = f"Presupuesto(s) {rut}-{patente} {'descartado(s)' if nuevo_estado == 1 else 'reactivado(s)'} exitosamente."
             return Response({"estado": "ok", "mensaje": mensaje},
                             status=HTTPStatus.OK)
         except Exception as e:

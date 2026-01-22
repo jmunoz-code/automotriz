@@ -655,8 +655,11 @@ export default {
 
       // 🐛 CORRECCIÓN DEL ERROR 🐛
       // Agrega una verificación para asegurarte de que la fecha existe
-      if (contrato.fecha) {
-        formData.value.fecha = new Date(contrato.fecha).toISOString().slice(0, 10);
+      // El backend envía 'fecha_inicio_pago' o 'fecha_inicio' (dependiendo del serializador)
+      const fechaPago = contrato.fecha_inicio_pago || contrato.fecha_inicio || contrato.fecha;
+
+      if (fechaPago) {
+        formData.value.fecha = new Date(fechaPago).toISOString().slice(0, 10);
       } else {
         // Si la fecha no existe, establece un valor por defecto o déjala vacía
         formData.value.fecha = '';
@@ -678,7 +681,8 @@ export default {
       formData.value.precio_venta = contrato.precio_venta;
       formData.value.interes_mensual = contrato.interes_mensual;
       formData.value.valor_cuota = contrato.valor_cuota;
-      formData.value.id_vendedor = contrato.id_vendedor || null;
+      // CORRECCIÓN: Usar rut_vendedor que viene del serializador
+      formData.value.id_vendedor = contrato.rut_vendedor || contrato.id_vendedor || null;
       formData.value.rut = contrato.rut_cliente;
       formData.value.patenteaBuscar = contrato.patente_vehiculo;
       formData.value.modelo = contrato.modelo_vehiculo;
@@ -751,6 +755,11 @@ export default {
         return;
       }
 
+      if (!formData.value.habilitado) {
+        mostrarMensaje('El cliente no esta habilitado para realizar compras.', 'error');
+        return;
+      }
+
       if (!formData.value.patente) {
         mostrarMensaje('Porfavor Ingrese Patente.', 'error');
         return;
@@ -811,16 +820,8 @@ export default {
         const apiUrl = `${import.meta.env.VITE_API_URL}presupuesto/${id}/`;
         const method = 'PUT';
 
-        let rutVendedorParaEnviar = '';
-        if (formData.value.id_vendedor) {
-          const vendedorSeleccionado = vendedores.value.find(
-            (v) => v.id === formData.value.id_vendedor
-          );
-
-          if (vendedorSeleccionado) {
-            rutVendedorParaEnviar = vendedorSeleccionado.rut;
-          }
-        }
+        // Al usar rut como value en el dropdown, formData.value.id_vendedor YA ES EL RUT
+        const rutVendedorParaEnviar = formData.value.id_vendedor || '';
         let payload = {};
         if (formData.value.tipo_pago_seleccionado === 'contado') {
           payload = {
@@ -909,12 +910,18 @@ export default {
           mostrarMensaje('Por favor, ingrese el RUT del cliente.', 'error');
           return;
         }
+
+        if (!formData.value.habilitado) {
+          mostrarMensaje('El cliente no esta habilitado para realizar compras.', 'error');
+          return;
+        }
         if (!formData.value.patente) {
           mostrarMensaje('Por favor, ingrese la patente del vehículo.', 'error');
           return;
         }
 
-        // Verificar si ya existe un contrato con el mismo RUT y patente
+        // Validacion de duplicados eliminada a peticion del usuario (permitir multiples contratos mismo RUT/Patente)
+        /*
         const contratoExistente = datos.value.find(
           contrato => contrato.rut_cliente === formData.value.rut &&
             contrato.patente_vehiculo === formData.value.patente
@@ -924,6 +931,7 @@ export default {
           mostrarMensaje(`Ya existe un contrato para el RUT ${formData.value.rut} con la patente ${formData.value.patente}. No se pueden crear contratos duplicados.`, 'error');
           return;
         }
+        */
 
         if (!formData.value.id_vendedor) {
           mostrarMensaje('Por favor, seleccione un vendedor.', 'error');
@@ -943,16 +951,8 @@ export default {
           return;
         }
 
-        let rutVendedorParaEnviar = '';
-        if (formData.value.id_vendedor) {
-          const vendedorSeleccionado = vendedores.value.find(
-            (v) => v.id === formData.value.id_vendedor
-          );
-
-          if (vendedorSeleccionado) {
-            rutVendedorParaEnviar = vendedorSeleccionado.rut;
-          }
-        }
+        // Al usar rut como value en el dropdown, formData.value.id_vendedor YA ES EL RUT
+        const rutVendedorParaEnviar = formData.value.id_vendedor || '';
 
         let payload = {};
 
@@ -1548,7 +1548,7 @@ export default {
                 <div class="col-md-4">
                   <select class="form-select form-select-sm negrita" id="vendedor" v-model="formData.id_vendedor">
                     <option :value="null" disabled>Seleccione un vendedor</option>
-                    <option v-for="vendedor in vendedores" :key="vendedor.id" :value="vendedor.id">
+                    <option v-for="vendedor in vendedores" :key="vendedor.id" :value="vendedor.rut">
                       {{ vendedor.rut }} - {{ vendedor.nombres }} {{ vendedor.apellidos }}
                     </option>
                   </select>

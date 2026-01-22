@@ -239,6 +239,47 @@
               }
             };
 
+            const actualizarInteresMora = async (cuotaId, nuevoMonto) => {
+              if (nivel.value !== 'ADMIN') {
+                mostrarMensaje('Acción no permitida. Solo administradores pueden modificar el interés por mora.', 'error');
+                return;
+              }
+
+              // Asegurar que el valor sea un número entero
+              let montoEntero = Math.round(parseFloat(nuevoMonto));
+
+              // Si no es un número válido (ej. vacío), enviar null o 0 según corresponda. 
+              // Asumiremos 0 si es inválido para mantener consistencia numérica, o null si el backend lo prefiere.
+              if (isNaN(montoEntero)) {
+                montoEntero = 0;
+              }
+
+              try {
+                const url = `${import.meta.env.VITE_API_URL}pagocuotas/modificar_cuota/${cuotaId}/`;
+
+                const response = await fetch(url, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    interes_mora: montoEntero
+                  })
+                });
+
+                if (!response.ok) {
+                  throw new Error(`Error al actualizar interés mora: ${response.statusText}`);
+                }
+
+                mostrarMensaje('Interés por mora actualizado exitosamente.', 'success');
+                // cargarListaDeCuotas(); // Opcional, si quieres refrescar
+
+              } catch (error) {
+                console.error('Error:', error);
+                mostrarMensaje('Error al actualizar el interés por mora.', 'error');
+              }
+            };
+
             const actualizarObservacion = async (cuotaId, nuevaObservacion) => {
               try {
                 const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/${cuotaId}/`;
@@ -448,7 +489,9 @@
               actualizarObservacion,
               eliminarUnaCuota,
               cuotasConCalculoDeCapital,
+              cuotasConCalculoDeCapital,
               grabarEdicionCuota,
+              actualizarInteresMora,
               nivel,
               clientesEnMora,
               clienteSeleccionado,
@@ -570,6 +613,7 @@
                   <th style="text-align: center">Amortizacion Capital</th>
                   <th style="text-align: center">Capital + Interés</th>
                   <th style="text-align: center">Monto Cuota</th>
+                  <th style="text-align: center">Interés Mora</th>
                   <th style="text-align: center">Monto Abonado</th>
                   <th style="text-align: center">Saldo</th>
                   <th style="text-align: center">Estado</th>
@@ -594,6 +638,11 @@
                       style="width: 120px; text-align: center;" :disabled="nivel !== 'ADMIN'" />
 
                   </td>
+                  <td style="text-align: center">
+                    <input type="number" v-model="cuota.interes_mora"
+                      @blur="actualizarInteresMora(cuota.id, cuota.interes_mora)" class="form-control form-control-sm"
+                      style="width: 120px; text-align: center; margin: 0 auto;" :disabled="nivel !== 'ADMIN'" />
+                  </td>
                   <td style="text-align: center">{{ formatearMilesConPunto(cuota.abono_total) }} </td>
                   <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_cuota - cuota.abono_total) }}
                   </td>
@@ -610,13 +659,11 @@
                       rows="1">
                     </textarea>
                   </td>
-                  <td v-if="!mostrarHistorico" style="width: 310px;">
-                    <button class="btn btn-info btn-sm me-4" style="margin-right: 3px;"
-                      @click.stop="abrirModalGrabar(cuota)">
+                  <td v-if="!mostrarHistorico" style="min-width: 310px;">
+                    <button class="btn btn-info btn-sm me-1" @click.stop="abrirModalGrabar(cuota)">
                       Abonar
                     </button>
-                    <button class="btn btn-secondary btn-sm" @click.stop="abrirModalEdicion(cuota)"
-                      style="margin-right: 3px;">
+                    <button class="btn btn-secondary btn-sm me-1" @click.stop="abrirModalEdicion(cuota)">
                       Abonos
                     </button>
                     <button class="btn btn-danger btn-sm" @click.stop="eliminarUnaCuota(cuota.id)"

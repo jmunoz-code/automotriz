@@ -44,6 +44,7 @@ urlpatterns = [
     path('api/', include('tipo_arriendo.urls')),
     path('api/', include('gastos.urls')),
     path('api/', include('informes.urls')),
+    path('api/', include('auditoria.urls')),
     
 
     # esta son las documentaciones de todas laas APIS

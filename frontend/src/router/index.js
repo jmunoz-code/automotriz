@@ -11,6 +11,7 @@ import resumen from '@/views/resumen.vue'
 import Comprobante from '@/views/Comprobante.vue'
 import InformePagos1 from '@/views/InformePagos1.vue'
 import CuotasImpagas from '@/views/CuotasImpagas.vue'
+import Auditoria from '@/views/Auditoria.vue'
 import Inicio from '@/views/Inicio.vue'
 import Informes from '@/views/Informes.vue'
 import AbonoCuotas from '@/views/AbonoCuotas.vue'
@@ -97,6 +98,11 @@ const router = createRouter({
             path: '/CuotasImpagas',
             component: CuotasImpagas,
             name: 'CuotasImpagas'
+        },
+        {
+            path: '/Auditoria',
+            component: Auditoria,
+            name: 'Auditoria'
         },
         {
             path: '/Administracion',

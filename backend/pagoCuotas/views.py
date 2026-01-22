@@ -1,5 +1,5 @@
 # views.py
-from django.db.models import Sum, OuterRef, Subquery, DecimalField, F, Q
+from django.db.models import Sum, OuterRef, Subquery, DecimalField, F, Q, Exists
 from django.db.models.functions import Coalesce
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,6 +17,7 @@ from .models import PagoCuotas as Cuota
 from detallePagoCuotas.models import DetallePagoCuotas
 from clientes.models import Clientes
 from presupuesto.models import Presupuesto
+from auditoria.utils import registrar_auditoria
 
 
 class PagoCuotasAPIView(APIView):
@@ -107,25 +108,23 @@ class PagoCuotasAPIView(APIView):
             # Definir estado a filtrar
             estado_filtro = 1 if historico else 0
             
-            # --- ESTRATEGIA SEGURA (BULLETPROOF) v2 ---
-            # 1. Obtener lista de tuplas (rut, patente) válidas
-            # Convertimos a lista para evitar cualquier lazy evaluation rara de Django/DB
-            qs_contratos = Presupuesto.objects.filter(estado=estado_filtro).values_list('rut_cliente', 'patente_vehiculo')
-            lista_contratos = list(qs_contratos)
+            # --- ESTRATEGIA OPTIMIZADA CON EXISTS ---
+            # Usamos Exists para filtrar eficientemente los pares (rut, patente) 
+            # que coinciden con un Presupuesto en el estado deseado.
             
-            # 2. Si no hay contratos, retornamos vacio inmediatamente
-            if not lista_contratos:
-                return Response({'message': 'No hay contratos en ese estado', 'data': []}, status=status.HTTP_200_OK)
+            presupuestos_validos = Presupuesto.objects.filter(
+                rut_cliente=OuterRef('rut_cliente'),
+                patente_vehiculo=OuterRef('patente'), 
+                estado=estado_filtro
+            )
 
-            # 3. Construir filtro Q grande
-            filtro_pares = Q()
-            for r, p in lista_contratos:
-                filtro_pares |= Q(rut_cliente=r, patente=p)
-            
-            # 4. Filtrar cuotas base usando el filtro construido
+            # Filtrar cuotas base usando Exists
+            # NOTA: Eliminamos la anotación de abono_total aquí porque el Serializer 
+            # la recálcula con un SerializerMethodField ignorando esta anotación.
+            # Esto evita una subquery costosa innecesaria en la vista.
             cuotas = Cuota.objects.annotate(
-                abono_total=Subquery(subquery_abonos)
-            ).filter(filtro_pares)
+                existe_presupuesto=Exists(presupuestos_validos)
+            ).filter(existe_presupuesto=True)
 
             # --- APLICAR FILTROS EXTRA ---
             if rut_cliente:
@@ -148,8 +147,56 @@ class PagoCuotasAPIView(APIView):
             # Ordenar
             cuotas = cuotas.order_by('rut_cliente', 'patente', 'numero_cuota')
             
+            # --- OPTIMIZACIÓN DE SERIALIZACIÓN (BULK FETCH) ---
+            # Convertimos a lista para "materializar" la query principal una sola vez
+            cuotas_list = list(cuotas)
+            
+            if not cuotas_list:
+                return Response({'message': 'No se encontraron cuotas', 'data': []}, status=status.HTTP_200_OK)
+
+            # Recolectar claves para bulk fetch
+            ruts = set()
+            patentes = set()
+            for c in cuotas_list:
+                if c.rut_cliente:
+                    ruts.add(c.rut_cliente)
+                if c.patente:
+                    patentes.add(c.patente)
+            
+            # Bulk Fetch Clientes
+            clientes_map = {}
+            if ruts:
+                for cli in Clientes.objects.filter(rut__in=ruts):
+                    clientes_map[cli.rut] = cli
+
+            # Bulk Fetch Presupuestos
+            presupuestos_map = {}
+            if ruts and patentes:
+                # Traemos un superset filtrando por listas independientes
+                qs_pres = Presupuesto.objects.filter(rut_cliente__in=ruts, patente_vehiculo__in=patentes)
+                for p in qs_pres:
+                    presupuestos_map[(p.rut_cliente, p.patente_vehiculo)] = p
+            
+            # Bulk Fetch Abonos (DetallePagoCuotas)
+            abonos_map = {}
+            if ruts and patentes:
+                qs_abonos = DetallePagoCuotas.objects.filter(
+                    rut__in=ruts, 
+                    patente__in=patentes
+                ).values('rut', 'patente', 'numero_cuota').annotate(total=Sum('monto_cuota'))
+                
+                for ab in qs_abonos:
+                    abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'])] = ab['total']
+
+            # Contexto para el serializador
+            ctx = {
+                'clientes_map': clientes_map,
+                'presupuestos_map': presupuestos_map,
+                'abonos_map': abonos_map
+            }
+            
             # Serializar
-            serializer = PagoCuotasSerializer(cuotas, many=True)
+            serializer = PagoCuotasSerializer(cuotas_list, many=True, context=ctx)
             return Response({'message': 'Cuotas obtenidas exitosamente', 'data': serializer.data}, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -168,10 +215,35 @@ class PagoCuotasAPIView(APIView):
         except Cuota.DoesNotExist:
             return Response({"message": "Cuota no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Capturar valor anterior para auditoría (ej: monto, fecha, observación)
+        valor_anterior = f"Monto: {cuota.monto_cuota}, Obs: {cuota.observacion}"
+
         serializer = PagoCuotasSerializer(cuota, data=request.data, partial=True)
 
         if serializer.is_valid():
-            serializer.save()
+            cuota_actualizada = serializer.save()
+            
+            # Registrar auditoría
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+            
+            # Determinar qué cambió
+            valor_nuevo = f"Monto: {cuota_actualizada.monto_cuota}, Obs: {cuota_actualizada.observacion}"
+            
+            # Intentar obtener usuario (si está autenticado, sino usar 'system' o similar)
+            usuario = str(request.user) if request.user else 'Anonimo'
+            
+            registrar_auditoria(
+                usuario=usuario,
+                pagina='ListaCuotas',
+                accion='MODIFICAR',
+                modulo_tabla='PagoCuotas',
+                descripcion=f'Modificación de cuota {pk} del cliente {cuota.rut_cliente}',
+                valor_anterior=valor_anterior,
+                valor_nuevo=valor_nuevo,
+                ip_usuario=ip
+            )
+            
             return Response({'message': 'Cuota actualizada exitosamente', 'data': serializer.data}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -221,41 +293,75 @@ class CuotasImpagasAPIView(APIView):
             fecha_inicio_str = request.query_params.get('fecha_inicio')
             fecha_fin_str = request.query_params.get('fecha_fin')
             
-            # --- ESTRATEGIA SEGURA v2 ---
-            qs_activos = Presupuesto.objects.filter(estado=0).values_list('rut_cliente', 'patente_vehiculo')
-            lista_activos = list(qs_activos)
+            # --- ESTRATEGIA OPTIMIZADA CON EXISTS (igual a PagoCuotasAPIView) ---
+            presupuestos_activos = Presupuesto.objects.filter(
+                rut_cliente=OuterRef('rut_cliente'),
+                patente_vehiculo=OuterRef('patente'),
+                estado=0  # Solo activos
+            )
             
-            filtro_pares = Q()
-            for r, p in lista_activos:
-                filtro_pares |= Q(rut_cliente=r, patente=p)
-            
-            if not lista_activos:
-                cuotas_base = Cuota.objects.none()
-            else:
-                cuotas_base = Cuota.objects.filter(
-                    Q(fecha_vencimiento__lt=date.today()) | Q(fecha_vencimiento__isnull=True)
-                ).filter(filtro_pares).order_by('fecha_vencimiento')
+            # Filtrar cuotas vencidas con Exists
+            cuotas_base = Cuota.objects.annotate(
+                existe_presupuesto_activo=Exists(presupuestos_activos)
+            ).filter(
+                existe_presupuesto_activo=True,
+                fecha_vencimiento__lt=date.today()
+            ).order_by('fecha_vencimiento')
 
+            # Aplicar filtros de fecha si existen
             if fecha_inicio_str:
                 cuotas_base = cuotas_base.filter(fecha_vencimiento__gte=date.fromisoformat(fecha_inicio_str))
             if fecha_fin_str:
                 cuotas_base = cuotas_base.filter(fecha_vencimiento__lte=date.fromisoformat(fecha_fin_str))
             
-            subquery_abonos = DetallePagoCuotas.objects.filter(
-                rut=OuterRef('rut_cliente'),
-                patente=OuterRef('patente'),
-                numero_cuota=OuterRef('numero_cuota')
-            ).values('rut', 'patente', 'numero_cuota').annotate(
-                total_abonos_sum=Coalesce(Sum('monto_cuota'), 0, output_field=DecimalField())
-            ).values('total_abonos_sum')[:1]
+            # Obtener la lista de cuotas (evaluar queryset)
+            cuotas_list = list(cuotas_base)
+            
+            # --- BULK FETCHING (igual a PagoCuotasAPIView) ---
+            ruts = set()
+            patentes = set()
+            for c in cuotas_list:
+                if c.rut_cliente:
+                    ruts.add(c.rut_cliente)
+                if c.patente:
+                    patentes.add(c.patente)
+            
+            # Bulk Fetch Clientes
+            clientes_map = {}
+            if ruts:
+                for cli in Clientes.objects.filter(rut__in=ruts):
+                    clientes_map[cli.rut] = cli
 
-            cuotas_queryset = cuotas_base.annotate(
-                abono_total_anotado=Subquery(subquery_abonos) 
-            )
+            # Bulk Fetch Presupuestos
+            presupuestos_map = {}
+            if ruts and patentes:
+                qs_pres = Presupuesto.objects.filter(rut_cliente__in=ruts, patente_vehiculo__in=patentes)
+                for p in qs_pres:
+                    presupuestos_map[(p.rut_cliente, p.patente_vehiculo)] = p
+            
+            # Bulk Fetch Abonos (DetallePagoCuotas)
+            abonos_map = {}
+            if ruts and patentes:
+                qs_abonos = DetallePagoCuotas.objects.filter(
+                    rut__in=ruts, 
+                    patente__in=patentes
+                ).values('rut', 'patente', 'numero_cuota').annotate(total=Sum('monto_cuota'))
+                
+                for ab in qs_abonos:
+                    abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'])] = ab['total']
 
-            serializer = PagoCuotasSerializer(cuotas_queryset, many=True)
+            # Contexto para el serializador
+            ctx = {
+                'clientes_map': clientes_map,
+                'presupuestos_map': presupuestos_map,
+                'abonos_map': abonos_map
+            }
+            
+            # Serializar
+            serializer = PagoCuotasSerializer(cuotas_list, many=True, context=ctx)
             data_serializada = serializer.data
             
+            # Filtrar solo las que tienen días de atraso > 0
             cuotas_filtradas = [
                 item for item in data_serializada if item.get('dias_atraso', 0) > 0
             ]
@@ -263,6 +369,9 @@ class CuotasImpagasAPIView(APIView):
             return Response(cuotas_filtradas, status=status.HTTP_200_OK)
 
         except Exception as e:
+            print(f"CRITICAL ERROR in CuotasImpagasAPIView: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return Response({"message": f"Error interno: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

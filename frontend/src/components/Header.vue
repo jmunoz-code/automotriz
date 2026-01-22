@@ -109,6 +109,10 @@ const logout = () => {
                                             <router-link to="/resumen" title="Informes Resumen">Informe
                                                 Resumen</router-link>
                                         </li>
+                                        <li v-if="nivel === 'ADMIN'">
+                                            <router-link to="/Auditoria"
+                                                title="Auditoría del Sistema">Auditoría</router-link>
+                                        </li>
 
                                         <li>
                                             <RouterLink to="/Administracion">Admin</RouterLink>

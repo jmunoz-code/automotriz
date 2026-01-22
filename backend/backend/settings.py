@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'tipo_arriendo',
     'gastos',
     'informes',
+    'auditoria',
 ]
 
 # --- MIDDLEWARE ---

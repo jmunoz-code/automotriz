@@ -36,118 +36,79 @@ class PagoCuotasSerializer(serializers.ModelSerializer):
     # --- MÉTODOS CLAVE CORREGIDOS ---
     
     def get_abono_total(self, obj):
-        """
-        Calcula la suma de todos los abonos para esta cuota.
-        Usa DetallePagoCuotas y suma el campo 'monto_cuota' (que es el abono).
-        """
+        abonos_map = self.context.get('abonos_map')
+        if abonos_map is not None:
+            return abonos_map.get((obj.rut_cliente, obj.patente, obj.numero_cuota), 0)
+            
+        # Fallback si no hay contexto (compatibilidad)
         abono = DetallePagoCuotas.objects.filter(
-            rut=obj.rut_cliente, # Coincide el campo 'rut' de DetallePagoCuotas con 'rut_cliente' de PagoCuotas
+            rut=obj.rut_cliente, 
             patente=obj.patente,
             numero_cuota=obj.numero_cuota
         ).aggregate(Sum('monto_cuota'))
-        
-        # El resultado de la suma está en 'monto_cuota__sum'
         return abono['monto_cuota__sum'] or 0
     
     def get_dias_atraso(self, obj):
-        """
-        Determina si la cuota está REALMENTE impaga y calcula los días de atraso.
-        Lógica: (Venció) AND (Abono < MontoCuota)
-        """
-        
-        abono_total = self.get_abono_total(obj) # Monto total abonado
-        monto_cuota = obj.monto_cuota or 0       # Monto que se debe pagar
+        abono_total = self.get_abono_total(obj) # Usa la lógica optimizada
+        monto_cuota = obj.monto_cuota or 0
         fecha_vencimiento = obj.fecha_vencimiento
         
-        # 1. Chequeo de vencimiento
         if not fecha_vencimiento or fecha_vencimiento >= date.today():
-            return 0 # No está vencida o falta el dato
+            return 0
         
-        # 2. Chequeo de monto suficiente (Regla: Monto abonado < Monto cuota)
         if abono_total < monto_cuota:
-            # Cuota vencida y con abono insuficiente -> Impaga
             return (date.today() - fecha_vencimiento).days
-            
-        # 3. Pago TARDÍO:
-        # Según tu regla: "si se pago despues de la fecha de vencimiento y uyo monto sea mayor o igual al modelo pagoc.uotat no debe salir en el listado".
-        # Esto significa que un pago COMPLETO (aunque sea tardío) hace que NO aparezca en el listado de impagos.
-        # Por lo tanto, si abono_total >= monto_cuota, devolvemos 0 días de atraso.
         return 0
 
-    # --- MÉTODOS DE CLIENTES/PRESUPUESTO (Sin Cambios) ---
+    # --- MÉTODOS DE CLIENTES/PRESUPUESTO OPTIMIZADOS ---
     
-    # ... (Todos los métodos get_fono, get_nombres, get_apellidos, etc., que ya tenías)
-    def get_fono(self, obj):
+    def _get_cliente(self, rut):
+        clientes_map = self.context.get('clientes_map')
+        if clientes_map is not None:
+            return clientes_map.get(rut)
         try:
-            cliente = Clientes.objects.get(rut=obj.rut_cliente)
-            return cliente.fono
+            return Clientes.objects.get(rut=rut)
         except Clientes.DoesNotExist:
             return None
+
+    def _get_presupuesto(self, rut, patente):
+        presupuestos_map = self.context.get('presupuestos_map')
+        if presupuestos_map is not None:
+            return presupuestos_map.get((rut, patente))
+        return Presupuesto.objects.filter(rut_cliente=rut, patente_vehiculo=patente).first()
+
+    def get_fono(self, obj):
+        cliente = self._get_cliente(obj.rut_cliente)
+        return cliente.fono if cliente else None
         
     def get_nombres(self, obj):
-        try:
-            cliente = Clientes.objects.get(rut=obj.rut_cliente)
-            return cliente.nombres
-        except Clientes.DoesNotExist:
-            return None
+        cliente = self._get_cliente(obj.rut_cliente)
+        return cliente.nombres if cliente else None
         
     def get_apellidos(self, obj):
-        try:
-            cliente = Clientes.objects.get(rut=obj.rut_cliente)
-            return  cliente.apellidos
-        except Clientes.DoesNotExist:
-            return None
-   
+        cliente = self._get_cliente(obj.rut_cliente)
+        return  cliente.apellidos if cliente else None
+    
     def get_monto_a_financiar(self, obj):
-        presupuesto = Presupuesto.objects.filter(
-            rut_cliente=obj.rut_cliente,
-            patente_vehiculo=obj.patente
-        ).first()
-        if presupuesto:
-            return presupuesto.monto_a_financiar
-        return None
+        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        return p.monto_a_financiar if p else None
     
     def get_numero_cuotas(self, obj):
-        presupuesto = Presupuesto.objects.filter(
-            rut_cliente=obj.rut_cliente,
-            patente_vehiculo=obj.patente
-        ).first()
-        if presupuesto:
-            return presupuesto.numero_cuotas
-        return None
+        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        return p.numero_cuotas if p else None
     
     def get_precio_venta(self, obj):
-        presupuesto = Presupuesto.objects.filter(
-            rut_cliente=obj.rut_cliente,
-            patente_vehiculo=obj.patente
-        ).first()
-        if presupuesto:
-            return presupuesto.precio_venta
-        return None
+        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        return p.precio_venta if p else None
     
     def get_valor_pie(self, obj):
-        presupuesto = Presupuesto.objects.filter(
-            rut_cliente=obj.rut_cliente,
-            patente_vehiculo=obj.patente
-        ).first()
-        if presupuesto:
-            return presupuesto.valor_pie
-        return None
+        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        return p.valor_pie if p else None
     
     def get_interes_mensual(self, obj):
-        presupuesto = Presupuesto.objects.filter(
-            rut_cliente=obj.rut_cliente,
-            patente_vehiculo=obj.patente
-        ).first()
-        if presupuesto:
-            return presupuesto.interes_mensual
-        return None
+        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        return p.interes_mensual if p else None
     
     def get_fecha_creacion(self, obj):
-        presupuesto = Presupuesto.objects.filter(
-            rut_cliente=obj.rut_cliente,
-            patente_vehiculo=obj.patente
-        ).first()
-        if presupuesto:
-            return presupuesto.fecha_creacion
-        return None
+        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        return p.fecha_creacion if p else None

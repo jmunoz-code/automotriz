@@ -433,7 +433,7 @@ export default {
               </div>
 
               <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="habilitado" v-model="formData.habilitado">
+                <input type="checkbox" class="form-check-input" id="habilitado" v-model="formData.habilitado" :disabled="nivel !== 'ADMIN'">
                 <label class="form-check-label negrita" for="habilitado">Habilitado</label>
               </div>
               <br>
