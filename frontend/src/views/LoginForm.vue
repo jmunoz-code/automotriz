@@ -85,15 +85,8 @@ export default {
           localStorage.setItem('user_id', responseData.data.id);
         }
 
-        // Detectar si es un dispositivo móvil
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-        
-        // Redirigir a Presupuesto si es móvil, o a Inicio si es desktop
-        if (isMobile) {
-          this.$router.push('/presupuesto');
-        } else {
-          this.$router.push('/inicio');
-        }
+        // Redirigir siempre a Presupuesto
+        this.$router.push('/presupuesto');
 
       } catch (err) {
         console.error('Error durante el login:', err);

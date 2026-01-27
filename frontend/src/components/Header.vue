@@ -5,6 +5,11 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const nivel = ref(null);
+const isMenuOpen = ref(false); // State for mobile menu
+
+const toggleMenu = () => {
+    isMenuOpen.value = !isMenuOpen.value;
+};
 
 // Variables de submenús... (se mantienen sin cambios)
 const mostrarClientesSubmenu = ref(false);
@@ -23,8 +28,17 @@ const logout = () => {
     localStorage.removeItem('user_usuario');
     localStorage.removeItem('user_id');
     nivel.value = null;
+    isMenuOpen.value = false; // Close menu on logout
     router.push('/');
 };
+
+import { watch } from 'vue';
+import { useRoute } from 'vue-router';
+const route = useRoute();
+
+watch(route, () => {
+    isMenuOpen.value = false;
+});
 </script>
 
 <template>
@@ -59,8 +73,12 @@ const logout = () => {
                         <img src="/img/core-img/logo.png" alt="logo" style="width:270px; height:100px" />
                     </router-link>
 
-                    <div class="classy-menu">
-                        <div class="classycloseIcon">
+                    <div class="classy-navbar-toggler" @click="toggleMenu">
+                        <span class="navbarToggler"><span></span><span></span><span></span></span>
+                    </div>
+
+                    <div class="classy-menu" :class="{ 'menu-on': isMenuOpen }">
+                        <div class="classycloseIcon" @click="toggleMenu">
                             <div class="cross-wrap"><span class="top"></span><span class="bottom"></span></div>
                         </div>
                         <div class="classynav">

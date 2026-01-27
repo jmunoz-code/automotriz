@@ -1,5 +1,6 @@
 
 import '/public/style.css'
+import '@/assets/css/responsive-overrides.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 

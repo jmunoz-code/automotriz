@@ -2,6 +2,7 @@
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 import { onMounted, ref, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'Presupuesto',
@@ -63,6 +64,11 @@ export default {
 
     // Nivel del usuario desde localStorage
     const nivel = ref(localStorage.getItem('user_nivel'));
+    const router = useRouter();
+
+    const goToAdmin = () => {
+      router.push({ name: 'Atributos' });
+    };
 
     // Variables for the deletion modal
     const registroAEliminarId = ref(null);
@@ -952,6 +958,7 @@ export default {
       obtenerVendedores,
       vendedores,
       nivel,
+      goToAdmin,
 
     };
   },
@@ -960,7 +967,7 @@ export default {
 
 <template>
   <!-- Header solo visible en desktop -->
-  <Header v-if="!isMobile"></Header>
+  <Header></Header>
 
   <!-- Logo siempre visible pero responsivo -->
   <div style="text-align: center; padding: 20px 10px;">
@@ -974,6 +981,14 @@ export default {
       <h3>Cotización</h3>
       <br>
       <div style="text-align: right; font-weight: bold;">{{ formData.fecha }}</div>
+      
+      <!-- Botón Admin visible si es admin -->
+      <div v-if="(nivel === 'Admin' || nivel === 'Administrador')" style="text-align: center; margin-bottom: 20px;">
+        <button type="button" @click="goToAdmin" class="btn btn-warning" style="width: 100%; font-weight: bold;">
+          ADMIN
+        </button>
+      </div>
+
       <br>
       <br>
 

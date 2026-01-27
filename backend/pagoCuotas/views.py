@@ -64,6 +64,7 @@ class PagoCuotasAPIView(APIView):
                         abono_capital=capital_amortizado_esta_cuota,
                         monto_prestamo=monto_prestamo,
                         interes_mensual=interes_mensual,
+                        interes_mora=0,  # Valor por defecto para compatibilidad con cPanel
                     )
             
             generated_cuotas = Cuota.objects.filter(rut_cliente=rut_cliente, patente=patente).order_by('numero_cuota')
@@ -131,7 +132,7 @@ class PagoCuotasAPIView(APIView):
                 cuotas = cuotas.filter(rut_cliente=rut_cliente)
 
             if patente:
-                cuotas = cuotas.filter(patente=patente)
+                cuotas = cuotas.filter(patente__iexact=patente)
 
             if nombres_filtro:
                 ruts_por_nombre = list(Clientes.objects.filter(

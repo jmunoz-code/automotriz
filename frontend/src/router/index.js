@@ -20,6 +20,7 @@ import Presupuesto from '@/views/Presupuesto.vue'
 import ContratoCompraVenta from '@/views/ContratoCompraVenta.vue'
 import CartaResponsabilidad from '@/views/Carta.vue'
 import Vendedores from '@/views/Vendedores.vue'
+import Atributos from '@/views/Atributos.vue'
 import Marca from '@/views/Marca.vue'
 import Vehiculos from '@/views/Vehiculos.vue'
 import Costos from '@/views/Costos.vue'
@@ -191,6 +192,11 @@ const router = createRouter({
             component: Vendedores,
             name: 'Vendedores',
 
+        },
+        {
+            path: '/atributos',
+            component: Atributos,
+            name: 'Atributos'
         },
         {
             path: '/AbonoCuotas', // <-- Nueva ruta para la nueva pantalla

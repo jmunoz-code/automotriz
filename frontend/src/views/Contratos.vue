@@ -92,11 +92,13 @@ export default {
 
     const formatearFecha = (fechaISO) => {
       if (!fechaISO) return '';
-      const date = new Date(fechaISO);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
+      // Asumimos formato YYYY-MM-DD que viene del backend
+      const partes = fechaISO.toString().slice(0, 10).split('-');
+      if (partes.length === 3) {
+        const [year, month, day] = partes;
+        return `${day}-${month}-${year}`;
+      }
+      return fechaISO;
     };
 
     const goToContrato = (contractPatente, id, pagina) => {
@@ -659,16 +661,18 @@ export default {
       const fechaPago = contrato.fecha_inicio_pago || contrato.fecha_inicio || contrato.fecha;
 
       if (fechaPago) {
-        formData.value.fecha = new Date(fechaPago).toISOString().slice(0, 10);
+        // No convertir a Date para evitar problemas de timezone
+        // El backend ya envía las fechas en formato YYYY-MM-DD
+        formData.value.fecha = fechaPago.toString().slice(0, 10);
       } else {
-        // Si la fecha no existe, establece un valor por defecto o déjala vacía
         formData.value.fecha = '';
       }
 
       // 🐛 CORRECCIÓN DEL ERROR 🐛
       // Realiza la misma verificación para la fecha de creación
       if (contrato.fecha_creacion) {
-        formData.value.fecha_creacion = new Date(contrato.fecha_creacion).toISOString().slice(0, 10);
+        // No convertir a Date para evitar problemas de timezone
+        formData.value.fecha_creacion = contrato.fecha_creacion.toString().slice(0, 10);
       } else {
         formData.value.fecha_creacion = '';
       }
@@ -1153,12 +1157,6 @@ export default {
           const data = await response.json();
 
           console.log('Total contratos recibidos:', data.data.length);
-          const contratoBuscado = data.data.find(c => c.patente_vehiculo === 'GVTL29');
-          if (contratoBuscado) {
-            console.log('✅ REVISIÓN: El contrato GVTL29 SÍ fue recibido del backend. Estado:', contratoBuscado.estado);
-          } else {
-            console.error('❌ REVISIÓN: El contrato GVTL29 NO llegó en la respuesta del backend.');
-          }
 
           // Convertir el estado de BD (0/1) a booleano para el checkbox (true/false)
           // BD: 0 = habilitado -> Checkbox: true
@@ -1665,8 +1663,8 @@ export default {
             <tbody>
               <tr v-for="contrato in contratosFiltrados" :key="contrato.id"
                 @click="cargarContratoEnFormulario(contrato)" style="cursor: pointer;">
-                <td style="text-align: center;">{{ contrato.fecha_creacion }}</td>
-                <td style="text-align: center;">{{ contrato.fecha_inicio_pago }}</td>
+                <td style="text-align: center;">{{ formatearFecha(contrato.fecha_creacion) }}</td>
+                <td style="text-align: center;">{{ formatearFecha(contrato.fecha_inicio_pago) }}</td>
                 <td style="text-align: center;">{{ contrato.patente_vehiculo }}</td>
                 <td style="text-align: left;">{{ contrato.nombre_cliente }}</td>
                 <td style="text-align: left;">{{ contrato.apellidos }}</td>

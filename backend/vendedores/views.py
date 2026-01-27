@@ -9,6 +9,8 @@ from rest_framework.exceptions import ValidationError, NotFound
 from .models import Vendedores
 from .serializers import VendedoresSerializer
 from django.contrib.auth.hashers import check_password # Importa esto para verificar contraseñas
+import threading
+import time
 
 # ---
 ## Clase1: Gestión de Vendedores (GET all, POST)
@@ -189,9 +191,65 @@ class LoginVendedores(APIView):
                 {"error": "Credenciales inválidas."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        except Exception as e:
             print(f"Error inesperado en el login: {e}")
             return Response(
                 {"error": "Ocurrió un error inesperado al intentar iniciar sesión."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+def revert_admin_role(vendedor_id, previous_role):
+    """
+    Función auxiliar para revertir el rol de admin después de un tiempo.
+    """
+    print(f"Iniciando reversión de rol para vendedor ID: {vendedor_id}")
+    try:
+        # Importación dentro de la función para evitar problemas de contexto en hilos (aunque en este caso simple podría no ser necesario)
+        # Pero es buena práctica si el modelo pudiera no estar listo (raro en tiempo de ejecución)
+        from .models import Vendedores 
+        
+        # Necesitamos un pequeño delay o asegurar que esto corre en un contexto de DB válido si fuera asíncrono, 
+        # pero con threading simple y Django DB conexones por hilo debería funcionar,
+        # siempre que Django cierre conexiones viejas. 
+        # En entornos de producción WSGI, este hilo podría morir si el proceso muere.
+        
+        vendedor = Vendedores.objects.get(id=vendedor_id)
+        vendedor.nivel = previous_role
+        vendedor.save()
+        print(f"Rol de vendedor {vendedor.nombres} revertido a '{previous_role}' exitosamente.")
+    except Exception as e:
+        print(f"Error al revertir el rol del vendedor {vendedor_id}: {e}")
+
+class TempAdminView(APIView):
+    def post(self, request):
+        """
+        Asigna rol de ADMIN a un vendedor por 5 minutos.
+        Requiere 'id' en el body.
+        """
+        vendedor_id = request.data.get('id')
+        if not vendedor_id:
+            return Response({"error": "Se requiere el ID del vendedor."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            vendedor = Vendedores.objects.get(id=vendedor_id)
+            previous_role = vendedor.nivel
+            
+            # Si ya es Admin, no hacemos nada o reiniciamos el timer?
+            # Asumiremos que cambiamos a Admin siempre.
+            
+            vendedor.nivel = 'Admin' 
+            vendedor.save()
+            
+            # Iniciar timer de 5 minutos (300 segundos)
+            timer = threading.Timer(300, revert_admin_role, args=[vendedor.id, previous_role])
+            timer.start()
+            
+            return Response({
+                "message": f"Vendedor {vendedor.nombres} ahora es ADMIN por 5 minutos.",
+                "previous_role": previous_role
+            }, status=status.HTTP_200_OK)
+
+        except Vendedores.DoesNotExist:
+            return Response({"error": "Vendedor no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Error en TempAdminView: {e}")
+            return Response({"error": f"Error interno: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

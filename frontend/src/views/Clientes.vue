@@ -21,9 +21,8 @@ export default {
       habilitado: false, // Inicializado como booleano para el checkbox
     });
 
-    const nivel = ref(localStorage.getItem('user_nivel'));
-
-
+    const nivel = ref((localStorage.getItem('user_nivel') || '').toUpperCase());
+    const usuario = ref(localStorage.getItem('user_usuario'));
     const inputText = ref('');
     const mensaje = ref('');
     const tipoMensaje = ref('');
@@ -323,7 +322,19 @@ export default {
       }
     };
 
+    const handleHabilitadoChange = () => {
+      if (nivel.value === 'ADMIN') {
+        return;
+      }
+      if (formData.value.habilitado) {
+        mostrarMensaje('Debe consultar aprobación para realizar compra con su superior jerárquico', 'warning');
+      } else {
+        limpiarMensaje();
+      }
+    };
+
     onMounted(() => {
+      console.log('DEBUG - Nivel:', nivel.value, 'Usuario:', usuario.value);
       cargarListaDeClientes();
     });
 
@@ -348,9 +359,11 @@ export default {
       abrirModalEliminar,
       cerrarModalEliminar,
       registroAEliminarId,
-      registroAEliminarId,
+
       mostrarModalEliminar,
       nivel,
+      usuario,
+      handleHabilitadoChange,
     };
   },
 };
@@ -359,7 +372,7 @@ export default {
 <template>
   <Header></Header>
 
-  <div class="container mt-3">
+  <div class="container-fluid mt-3 mx-auto" style="width: 90%;">
     <div class="card shadow-sm mt-3 mb-3">
       <div class="card-header" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Ingreso
         Clientes</div>
@@ -429,11 +442,13 @@ export default {
                   <label for="observacion" class="form-label negrita">Observaciones</label>
                 </div>
                 <textarea v-model="formData.observacion" class="form-control form-control-sm" id="observacion"
-                  style="width: 800px; box-sizing: border-box;"></textarea>
+                  style="width: 100%; box-sizing: border-box;"></textarea>
               </div>
 
               <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="habilitado" v-model="formData.habilitado" :disabled="nivel !== 'ADMIN'">
+                <input type="checkbox" class="form-check-input" id="habilitado" v-model="formData.habilitado"
+                  :disabled="!(nivel === 'ADMIN' || usuario === 'Ferez' || usuario === 'FPEREZ' || usuario === 'fperez')"
+                  @change="handleHabilitadoChange">
                 <label class="form-check-label negrita" for="habilitado">Habilitado</label>
               </div>
               <br>
@@ -472,7 +487,7 @@ export default {
         </form>
 
         <div v-if="mensaje" class="mt-3 alert"
-          :class="{ 'alert-success': tipoMensaje === 'success', 'alert-danger': tipoMensaje === 'error' }">
+          :class="{ 'alert-success': tipoMensaje === 'success', 'alert-danger': tipoMensaje === 'error', 'alert-warning': tipoMensaje === 'warning' }">
           {{ mensaje }}
         </div>
 
@@ -502,6 +517,10 @@ export default {
               <td>{{ cliente.correo }}</td>
               <td>{{ cliente.habilitado ? 'Sí' : 'No' }}</td>
               <td>
+                <button type="button" class="btn btn-primary btn-sm me-2" @click="cargarDatosCliente(cliente.rut)">
+                  Seleccionar
+                </button>
+                &nbsp;
                 <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(cliente.rut)"
                   class="btn btn-danger btn-sm">Eliminar</button>
               </td>

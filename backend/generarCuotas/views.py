@@ -85,6 +85,7 @@ class GenerarCuotasAPIView(APIView):
                         # Campos adicionales necesarios para PagoCuotas
                         monto_prestamo=monto_prestamo,
                         interes_mensual=interes_mensual,
+                        interes_mora=0,  # Valor por defecto para compatibilidad con cPanel
                         fecha_pago=None,
                         observacion=None,
                     )

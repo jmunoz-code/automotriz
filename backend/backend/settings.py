@@ -140,6 +140,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- Internacionalización ---
 LANGUAGE_CODE = 'es-es'
+TIME_ZONE = 'America/Santiago'  # Zona horaria de Chile
+USE_TZ = False  # Desactivar timezone-aware datetimes para evitar conversiones
 #USE_I18N = True
 #USE_L10N = True
 

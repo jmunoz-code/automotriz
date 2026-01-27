@@ -9,6 +9,8 @@ from .models import *
 from .serializers import PresupuestoSerializer
 from django.db.models import Q 
 from django.db.models.functions import TruncMonth
+from dateutil.relativedelta import relativedelta
+from pagoCuotas.models import PagoCuotas
 
 class Clase1(APIView):
     def get(self, request):
@@ -54,15 +56,84 @@ class Clase2(APIView):
      
     def put(self, request, id):
         try:
+            from datetime import datetime, date
+            
             presupuesto_instance = Presupuesto.objects.get(id=id)
+            
+            # Guardar la fecha anterior para comparar
+            fecha_anterior = presupuesto_instance.fecha_inicio_pago
+            rut_cliente = presupuesto_instance.rut_cliente
+            patente = presupuesto_instance.patente_vehiculo
+            
+            # Parsear la nueva fecha directamente del request para evitar problemas de timezone
+            fecha_inicio_pago_str = request.data.get('fecha_inicio_pago')
+            fecha_nueva_raw = None
+            if fecha_inicio_pago_str:
+                try:
+                    # Parsear la fecha desde el string YYYY-MM-DD (sin timezone)
+                    fecha_nueva_raw = datetime.strptime(fecha_inicio_pago_str, '%Y-%m-%d').date()
+                    print(f"Fecha parseada desde request: {fecha_nueva_raw}")
+                except ValueError:
+                    print(f"No se pudo parsear fecha: {fecha_inicio_pago_str}")
+            
             serializer = PresupuestoSerializer(presupuesto_instance, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
+                
+                # Obtener la nueva fecha (usar la parseada si existe, sino la del serializer)
+                if fecha_nueva_raw:
+                    fecha_nueva = fecha_nueva_raw
+                else:
+                    fecha_nueva = serializer.instance.fecha_inicio_pago
+                    # Convertir a date si es datetime
+                    if hasattr(fecha_nueva, 'date'):
+                        fecha_nueva = fecha_nueva.date() if callable(fecha_nueva.date) else fecha_nueva
+                
+                print(f"Fecha anterior: {fecha_anterior}, Fecha nueva: {fecha_nueva}")
+                
+                # Si la fecha cambió, recalcular las fechas de las cuotas
+                if fecha_anterior != fecha_nueva:
+                    print(f"Fecha de vencimiento cambió de {fecha_anterior} a {fecha_nueva}")
+                    print(f"Recalculando cuotas para RUT: '{rut_cliente}', Patente: '{patente}'")
+                    print(f"Fecha base para cálculo: {fecha_nueva} (tipo: {type(fecha_nueva)})")
+                    
+                    # Debug: Ver todas las cuotas que existen para este cliente
+                    todas_cuotas = PagoCuotas.objects.all()
+                    print(f"Total cuotas en la BD: {todas_cuotas.count()}")
+                    cuotas_cliente = PagoCuotas.objects.filter(rut_cliente=rut_cliente)
+                    print(f"Cuotas para RUT '{rut_cliente}': {cuotas_cliente.count()}")
+                    if cuotas_cliente.exists():
+                        print("Detalles de las cuotas encontradas para este RUT:")
+                        for c in cuotas_cliente[:5]:  # Mostrar solo las primeras 5
+                            print(f"  - Cuota {c.numero_cuota}, RUT: '{c.rut_cliente}', Patente: '{c.patente}'")
+                    
+                    # Obtener todas las cuotas de este contrato ordenadas por número
+                    cuotas = PagoCuotas.objects.filter(
+                        rut_cliente=rut_cliente,
+                        patente=patente
+                    ).order_by('numero_cuota')
+                    
+                    print(f"Cuotas filtradas por RUT y Patente: {cuotas.count()}")
+                    
+                    # Recalcular las fechas de vencimiento
+                    cuotas_actualizadas = 0
+                    for cuota in cuotas:
+                        # La fecha de vencimiento es: fecha_nueva + (numero_cuota - 1) meses
+                        nueva_fecha_vencimiento = fecha_nueva + relativedelta(months=cuota.numero_cuota - 1)
+                        print(f"Cuota {cuota.numero_cuota}: {cuota.fecha_vencimiento} -> {nueva_fecha_vencimiento}")
+                        cuota.fecha_vencimiento = nueva_fecha_vencimiento
+                        cuota.save()
+                        cuotas_actualizadas += 1
+                    
+                    print(f"Se actualizaron {cuotas_actualizadas} cuotas")
+                    
                 return Response({"data": serializer.data, "message": "modificado exitosamente"}, status=HTTPStatus.OK)
             return Response(serializer.errors, status=HTTPStatus.BAD_REQUEST)
         except Presupuesto.DoesNotExist:
             return Response({"error": "Presupuesto no encontrado."}, status=HTTPStatus.NOT_FOUND)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response({"error": f"Ocurrio un error inesperado al modificar: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def delete(self, request, id):

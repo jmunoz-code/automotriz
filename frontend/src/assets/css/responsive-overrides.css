@@ -1,0 +1,99 @@
+/* Global Responsive Fixes */
+
+/* 1. Responsiveness for Tables */
+@media screen and (max-width: 768px) {
+    /* Force table to scroll horizontally */
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Optional: Force all tables to be responsive if they aren't wrapped */
+    table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+    }
+}
+
+/* 2. Container Padding on Mobile */
+@media screen and (max-width: 576px) {
+    .container, .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .card-body {
+        padding: 10px;
+    }
+    
+    /* Adjust input Sizing */
+    .form-control {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* 3. Header/Nav Fixes Override */
+@media screen and (max-width: 991px) {
+    .classy-navbar .classy-menu {
+        display: none; /* Hide by default on mobile, toggled via Vue */
+        background-color: #fff;
+        position: absolute;
+        top: 70px; /* Adjust based on header height */
+        left: 0;
+        width: 100%;
+        z-index: 9999;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+
+    .classy-navbar .classy-menu.menu-on {
+        display: block;
+    }
+
+    /* Hamburger Menu visible */
+    .classy-navbar .classy-navbar-toggler {
+        display: block;
+    }
+    
+    .classynav ul {
+        flex-direction: column;
+    }
+    
+    .classynav ul li a {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+}
+
+/* 4. Utilities */
+.w-100-mobile {
+    width: auto;
+}
+
+@media screen and (max-width: 576px) {
+    .w-100-mobile {
+        width: 100% !important;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    /* Flex utilities fix for mobile */
+    .d-flex {
+        flex-wrap: wrap;
+    }
+    
+    .col-md-auto {
+        width: 100%;
+    }
+    
+    .ms-2 {
+        margin-left: 0 !important;
+        margin-top: 5px;
+    }
+}

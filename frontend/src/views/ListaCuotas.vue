@@ -55,11 +55,13 @@
             };
             const formatearFecha = (fechaISO) => {
               if (!fechaISO) return '';
-              const date = new Date(fechaISO);
-              const day = String(date.getDate()).padStart(2, '0');
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const year = date.getFullYear();
-              return `${day}-${month}-${year}`;
+              // Asumimos formato YYYY-MM-DD que viene del backend
+              const partes = fechaISO.toString().slice(0, 10).split('-');
+              if (partes.length === 3) {
+                const [year, month, day] = partes;
+                return `${day}-${month}-${year}`;
+              }
+              return fechaISO;
             };
 
             const mostrarMensaje = (texto, tipo) => {
@@ -388,12 +390,18 @@
                 }
               });
 
-              // Retornar solo grupos con deuda, A MENOS que estemos en modo Histórico
-              if (mostrarHistorico.value) {
-                return Array.from(grupos.values());
+
+              // Retornar grupos
+              const resultados = Array.from(grupos.values());
+
+              // Si hay filtros activos (RUT o Patente) o modo Histórico, mostramos TODOS los resultados encontrados
+              // independientemente de si tienen deuda o no. Así el usuario puede "buscar" un cliente al día.
+              if (mostrarHistorico.value || filtroRutCuota.value || filtroPatenteCuota.value) {
+                return resultados;
               }
 
-              return Array.from(grupos.values()).filter(g => g.tiene_deuda);
+              // En la vista general (sin filtros), solo mostramos los que tienen deuda pendiente
+              return resultados.filter(g => g.tiene_deuda);
 
 
             });
