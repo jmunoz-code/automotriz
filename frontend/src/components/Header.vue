@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const nivel = ref(null);
+const usuario = ref(null);
 const isMenuOpen = ref(false); // State for mobile menu
 
 const toggleMenu = () => {
@@ -21,6 +22,7 @@ const mostrarSobreNosotrosSubmenu = ref(false);
 
 onMounted(() => {
     nivel.value = localStorage.getItem('user_nivel');
+    usuario.value = localStorage.getItem('user_usuario');
 });
 
 const logout = () => {
@@ -28,6 +30,7 @@ const logout = () => {
     localStorage.removeItem('user_usuario');
     localStorage.removeItem('user_id');
     nivel.value = null;
+    usuario.value = null;
     isMenuOpen.value = false; // Close menu on logout
     router.push('/');
 };
@@ -88,12 +91,16 @@ watch(route, () => {
                                         <li>
                                             <router-link to="/" title="Home">Inicio</router-link>
                                         </li>
-
-
                                         <li>
                                             <router-link to="/Presupuesto"
                                                 title="Creación de Presupuestos">Presupuestos</router-link>
                                         </li>
+
+                                        <li>
+                                            <router-link to="/TempAdmin"
+                                                title="Creación de Presupuestos">TempAdmin</router-link>
+                                        </li>
+
                                         <li>
                                             <router-link to="/Contratos"
                                                 title="Creacion de Contratos">Contratos</router-link>
@@ -105,29 +112,28 @@ watch(route, () => {
                                             <router-link to="/CuotasImpagas" title="Informes de Cuotas Impagas">Informe
                                                 Cuotas Impagas</router-link>
                                         </li>
-                                        <li v-if="nivel === 'ADMIN'">
+                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
+
                                             <router-link to="/Informes"
                                                 title="Informes Utilidades Negocios Utilidad Ventas">Informe
                                                 Ventas</router-link>
                                         </li>
-                                        <li v-if="nivel === 'ADMIN'">
+                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
                                             <router-link to="/InformePagos1"
                                                 title="Informes 1 Utilidades Créditos">Informe Créditos</router-link>
                                         </li>
-                                        <li v-if="nivel === 'ADMIN'">
-                                            <router-link to="/DocumentacionVehiculos"
-                                                title="Documentacion Vehiculos">Documentacion Vehiculos</router-link>
-                                        </li>
-                                        <li v-if="nivel === 'ADMIN'">
+
+                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
                                             <router-link to="/InformeVehiculos"
                                                 title="Informes Vehiculos Propiedad Automotora">Informe Vehiculos
                                                 P.A.</router-link>
                                         </li>
-                                        <li v-if="nivel === 'ADMIN'">
+                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
                                             <router-link to="/resumen" title="Informes Resumen">Informe
                                                 Resumen</router-link>
                                         </li>
-                                        <li v-if="nivel === 'ADMIN'">
+
+                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
                                             <router-link to="/Auditoria"
                                                 title="Auditoría del Sistema">Auditoría</router-link>
                                         </li>

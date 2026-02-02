@@ -2,6 +2,8 @@
 from django.shortcuts import render
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,6 +17,7 @@ import time
 # ---
 ## Clase1: Gestión de Vendedores (GET all, POST)
 # ---
+@method_decorator(csrf_exempt, name='dispatch')
 class Clase1(APIView):
 
     def get(self, request):
@@ -60,6 +63,7 @@ class Clase1(APIView):
 # ---
 ## Clase2: Gestión de Vendedores (GET by RUT, DELETE, PUT)
 # ---
+@method_decorator(csrf_exempt, name='dispatch')
 class Clase2(APIView):
 
     def get(self, request, rut):
@@ -148,6 +152,7 @@ class Clase2(APIView):
 # ---
 ## Clase Login: Autenticación de Vendedores
 # ---
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginVendedores(APIView):
     def post(self, request):
         """
@@ -191,6 +196,7 @@ class LoginVendedores(APIView):
                 {"error": "Credenciales inválidas."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+        except Exception as e:
             print(f"Error inesperado en el login: {e}")
             return Response(
                 {"error": "Ocurrió un error inesperado al intentar iniciar sesión."},
@@ -219,10 +225,11 @@ def revert_admin_role(vendedor_id, previous_role):
     except Exception as e:
         print(f"Error al revertir el rol del vendedor {vendedor_id}: {e}")
 
+@method_decorator(csrf_exempt, name='dispatch')
 class TempAdminView(APIView):
     def post(self, request):
         """
-        Asigna rol de ADMIN a un vendedor por 5 minutos.
+        Asigna rol de ADMIN a un vendedor por 2 minutos.
         Requiere 'id' en el body.
         """
         vendedor_id = request.data.get('id')
@@ -236,15 +243,15 @@ class TempAdminView(APIView):
             # Si ya es Admin, no hacemos nada o reiniciamos el timer?
             # Asumiremos que cambiamos a Admin siempre.
             
-            vendedor.nivel = 'Admin' 
+            vendedor.nivel = 'ADMIN' 
             vendedor.save()
             
-            # Iniciar timer de 5 minutos (300 segundos)
-            timer = threading.Timer(300, revert_admin_role, args=[vendedor.id, previous_role])
+            # Iniciar timer de 2 minutos (120 segundos)
+            timer = threading.Timer(120, revert_admin_role, args=[vendedor.id, previous_role])
             timer.start()
             
             return Response({
-                "message": f"Vendedor {vendedor.nombres} ahora es ADMIN por 5 minutos.",
+                "message": f"Vendedor {vendedor.nombres} ahora es ADMIN por 2 minutos.",
                 "previous_role": previous_role
             }, status=status.HTTP_200_OK)
 

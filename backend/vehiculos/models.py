@@ -31,6 +31,8 @@ class Vehiculos(models.Model):
     revision_tecnica_al_dia = models.IntegerField(null=True, default=0)
     permiso_circulacion = models.IntegerField(null=True, default=0)
     seguro_vigente = models.IntegerField(null=True, default=0)
+    habilitado_venta = models.IntegerField(null=True, default=0)
+    habilitado_compra = models.IntegerField(null=True, default=0)
 
 
       #clase helper

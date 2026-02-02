@@ -649,7 +649,7 @@
                   <td style="text-align: center">
                     <input type="number" v-model="cuota.interes_mora"
                       @blur="actualizarInteresMora(cuota.id, cuota.interes_mora)" class="form-control form-control-sm"
-                      style="width: 120px; text-align: center; margin: 0 auto;" :disabled="nivel !== 'ADMIN'" />
+                      style="width: 120px; text-align: center; margin: 0 auto;" />
                   </td>
                   <td style="text-align: center">{{ formatearMilesConPunto(cuota.abono_total) }} </td>
                   <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_cuota - cuota.abono_total) }}

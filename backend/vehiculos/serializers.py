@@ -37,7 +37,9 @@ class VehiculosSerializer(serializers.ModelSerializer):
             'propiedad_automotriz',
             'revision_tecnica_al_dia',
             'permiso_circulacion',
-            'seguro_vigente'
+            'seguro_vigente',
+            'habilitado_venta',
+            'habilitado_compra'
         ]
 
     # Método para obtener la descripción de la marca

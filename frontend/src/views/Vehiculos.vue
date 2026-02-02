@@ -37,6 +37,7 @@ export default {
       revision_tecnica_al_dia: false,
       permiso_circulacion: false,
       seguro_vigente: false,
+      habilitado_venta: false,
     });
 
     const nivel = ref(localStorage.getItem('user_nivel'));
@@ -229,6 +230,7 @@ export default {
           formData.value.revision_tecnica_al_dia = Data.revision_tecnica_al_dia === 1;
           formData.value.permiso_circulacion = Data.permiso_circulacion === 1;
           formData.value.seguro_vigente = Data.seguro_vigente === 1;
+          formData.value.habilitado_venta = Data.habilitado_venta === 1;
 
           // ¡AQUÍ ESTÁ LA MODIFICACIÓN CLAVE!
           // Cargar el total de gastos y asignarlo a formData.value.valorTotalFormateado
@@ -367,7 +369,10 @@ export default {
           propiedad_automotriz: formData.value.propiedad_automotriz,
           revision_tecnica_al_dia: formData.value.revision_tecnica_al_dia,
           permiso_circulacion: formData.value.permiso_circulacion,
-          seguro_vigente: formData.value.seguro_vigente
+          permiso_circulacion: formData.value.permiso_circulacion,
+          seguro_vigente: formData.value.seguro_vigente,
+          habilitado_venta: formData.value.habilitado_venta ? 1 : 0
+
 
         };
         const nuevoHabilitado = formData.value.propiedad_automotriz;
@@ -454,7 +459,9 @@ export default {
         propiedad_automotriz: false,
         revision_tecnica_al_dia: false,
         permiso_circulacion: false,
+        permiso_circulacion: false,
         seguro_vigente: false,
+        habilitado_venta: false,
       };
       mostrarMensaje('Formulario limpiado.', 'info');
     };
@@ -503,6 +510,12 @@ export default {
           payload.seguro_vigente = 0;
         } else {
           payload.seguro_vigente = 1;
+        }
+
+        if (formData.value.habilitado_venta === false) {
+          payload.habilitado_venta = 0;
+        } else {
+          payload.habilitado_venta = 1;
         }
 
 
@@ -593,7 +606,9 @@ export default {
               propiedad_automotriz: vehiculo.propiedad_automotriz,
               revision_tecnica_al_dia: vehiculo.revision_tecnica_al_dia,
               permiso_circulacion: vehiculo.permiso_circulacion,
+              permiso_circulacion: vehiculo.permiso_circulacion,
               seguro_vigente: vehiculo.seguro_vigente,
+              habilitado_venta: vehiculo.habilitado_venta,
 
             };
           }));
@@ -909,14 +924,25 @@ export default {
                   </div>
                 </div>
               </div>
-
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label negrita">Habilitado para venta</label>
+                  <div class="d-flex align-items-center" style="height: 31px;">
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input checkbox-grande" type="checkbox" id="habilitado_venta"
+                        v-model="formData.habilitado_venta">
+                      <label class="form-check-label" for="habilitado_venta">Sí</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div class="d-flex justify-content-center">
                 <div class="col-md-auto ms-2">
                   <button type="submit" class="btn btn-sm btn-secondary">Crear</button>
                 </div>
 
-                <div class="col-md-auto ms-2" v-if="nivel === 'ADMIN'">
+                <div class="col-md-auto ms-2">
                   <button type="button" class="btn btn-sm btn-secondary" @click="modificarRegistro(formData.patente)">
                     Modificar
                   </button>
@@ -959,6 +985,7 @@ export default {
               <th>Al día</th>
               <th>Permiso Circulación</th>
               <th>Seguro Vigente</th>
+              <th>Habilitado Venta</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -976,7 +1003,11 @@ export default {
               <td>{{ vehiculo.revision_tecnica_al_dia ? 'Sí' : 'No' }}</td>
               <td>{{ vehiculo.permiso_circulacion ? 'Sí' : 'No' }}</td>
               <td>{{ vehiculo.seguro_vigente ? 'Sí' : 'No' }}</td>
-
+              <td>
+                <span :class="vehiculo.habilitado_venta ? 'badge bg-success' : 'badge bg-danger'">
+                  {{ vehiculo.habilitado_venta ? 'Sí' : 'No' }}
+                </span>
+              </td>
 
               <td>
                 <button v-if="nivel === 'ADMIN'" @click="abrirModalEliminar(vehiculo.patente)"
@@ -984,7 +1015,7 @@ export default {
               </td>
             </tr>
             <tr v-if="datos.length === 0">
-              <td colspan="11">No hay vehículos registrados.</td>
+              <td colspan="13">No hay vehículos registrados.</td>
             </tr>
           </tbody>
         </table>
@@ -1021,5 +1052,10 @@ export default {
 
 .mi-dropdown {
   width: 310px;
+}
+
+.checkbox-grande {
+  transform: scale(1.25);
+  margin-right: 8px;
 }
 </style>

@@ -4,9 +4,9 @@ from .views import Clase1, Clase2, LoginVendedores, TempAdminView # Importa Logi
 
 
 urlpatterns = [
+    path('vendedores/temp-admin/', TempAdminView.as_view()), # MOVIDO ARRIBA Y RENOMBRADO para evitar conflicto con <rut>
     path('vendedores/', Clase1.as_view()),
     path('vendedores/<str:rut>/', Clase2.as_view()),
-    path('login/', LoginVendedores.as_view()), # Nueva ruta para el login
-    path('temp-admin/', TempAdminView.as_view()),
+    path('login/', LoginVendedores.as_view()), 
 ]
 

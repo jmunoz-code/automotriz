@@ -60,6 +60,9 @@ const mostrarSobreNosotrosSubmenu = ref(false);
                                             <li v-if="userNivel === 'ADMIN'">
                                                 <router-link to="/Vendedores" title="Usuarios">Usuarios</router-link>
                                             </li>
+                                            <li v-if="userNivel === 'ADMIN'">
+                                                <router-link to="/TempAdmin" title="Privilegios Temporales">Admin Temporal</router-link>
+                                            </li>
                                             <li>
                                                 <router-link to="/Costos" title="Costos Asociados">Gastos</router-link>
                                             </li>

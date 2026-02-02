@@ -16,6 +16,7 @@ class Clientes(models.Model):
     ciudad = models.CharField(max_length=100, null=True)
     observacion = models.CharField(max_length=200, null=True, blank=True)
     habilitado  = models.BooleanField(default=False)
+    habilitado_venta = models.BooleanField(default=False)
 
     #clase helper
     # cuando llamo modelo campo muetsre por defecto

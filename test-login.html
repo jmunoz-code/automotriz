@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Test Login API</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testLogin() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Probando...';
+            
+            try {
+                const apiUrl = 'http://127.0.0.1:8000/api/login/';
+                console.log('Intentando conectar a:', apiUrl);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        usuario: 'test',
+                        clave: 'test'
+                    })
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                resultEl.textContent = 'Status: ' + response.status + '\n' + 
+                                      'Data: ' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                console.error('Error completo:', error);
+                resultEl.textContent = 'ERROR: ' + error.message + '\n' + 
+                                      'Stack: ' + error.stack;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -46,6 +46,7 @@ export default {
       interes_mensual: 3.5,
       valor_cuota: null,
       tipo_pago_seleccionado: 'credito',
+      habilitado_compra: null,
     });
 
     // States for the user interface
@@ -546,6 +547,8 @@ export default {
         formData.value.vehiculo_descripcion = null;
         formData.value.patente = null;
         formData.value.precio_venta = null;
+        formData.value.habilitado_venta = null;
+        formData.value.habilitado_compra = null;
         return;
       }
       try {
@@ -558,6 +561,8 @@ export default {
           formData.value.vehiculo_descripcion = vehiculoData.vehiculo_descripcion;
           formData.value.patente = vehiculoData.patente;
           formData.value.precio_venta = vehiculoData.precio_venta;
+          formData.value.habilitado_venta = vehiculoData.habilitado_venta;
+          formData.value.habilitado_compra = vehiculoData.habilitado_compra;
           console.warn('Vehicle data loaded:', vehiculoData);
         } else {
           console.warn('No data found for license plate:', patenteABuscar);
@@ -568,6 +573,8 @@ export default {
           formData.value.vehiculo_descripcion = null;
           formData.value.patente = null;
           formData.value.precio_venta = null;
+          formData.value.habilitado_venta = null;
+          formData.value.habilitado_compra = null;
           mostrarMensaje('Vehiculo no encontrado.', 'info');
         }
       } catch (error) {
@@ -583,7 +590,11 @@ export default {
         const response = await fetch(apiUrl);
         if (response.ok) {
           const data = await response.json();
-          listaVehiculos.value = data.data;
+          // Mapear los datos para convertir habilitado_venta de 0/1 a boolean
+          listaVehiculos.value = data.data.map(vehiculo => ({
+            ...vehiculo,
+            habilitado_venta: vehiculo.habilitado_venta === 1
+          }));
         } else {
           console.error('Error cargando la lista de vehículos:', response.statusText);
           mostrarMensaje('Error cargando la lista de vehículos.', 'error');
@@ -610,6 +621,8 @@ export default {
       formData.value.marca_descripcion = vehiculo.marca_descripcion;
       formData.value.vehiculo_descripcion = vehiculo.vehiculo_descripcion;
       formData.value.precio_venta = vehiculo.precio_venta;
+      formData.value.habilitado_venta = vehiculo.habilitado_venta;
+      formData.value.habilitado_compra = vehiculo.habilitado_compra;
       mostrarListaVehiculos.value = false;
       mostrarMensaje(`Datos del vehículo ${vehiculo.patente} cargados.`, 'info');
     };
@@ -760,12 +773,17 @@ export default {
       }
 
       if (!formData.value.habilitado) {
-        mostrarMensaje('El cliente no esta habilitado para realizar compras.', 'error');
+        mostrarMensaje('El cliente no está habilitado para crear contratos.', 'error');
         return;
       }
 
       if (!formData.value.patente) {
         mostrarMensaje('Porfavor Ingrese Patente.', 'error');
+        return;
+      }
+
+      if (!formData.value.habilitado_compra) {
+        mostrarMensaje('El vehículo no está habilitado para crear contratos.', 'error');
         return;
       }
 
@@ -916,11 +934,16 @@ export default {
         }
 
         if (!formData.value.habilitado) {
-          mostrarMensaje('El cliente no esta habilitado para realizar compras.', 'error');
+          mostrarMensaje('El cliente no está habilitado para crear contratos.', 'error');
           return;
         }
         if (!formData.value.patente) {
           mostrarMensaje('Por favor, ingrese la patente del vehículo.', 'error');
+          return;
+        }
+
+        if (!formData.value.habilitado_compra) {
+          mostrarMensaje('El vehículo no está habilitado para crear contratos.', 'error');
           return;
         }
 
@@ -1020,6 +1043,28 @@ export default {
 
         if (response.ok) {
           mostrarMensaje('¡Contrato Creado exitosamente!', 'success');
+
+          // Deshabilitar el vehículo para venta después de crear el contrato
+          try {
+            const patenteVehiculo = formData.value.patente;
+            const vehiculoApiUrl = `${import.meta.env.VITE_API_URL}vehiculos/${patenteVehiculo}/`;
+
+            const vehiculoResponse = await fetch(vehiculoApiUrl, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ habilitado_venta: 0 }),
+            });
+
+            if (vehiculoResponse.ok) {
+              console.log(`Vehículo ${patenteVehiculo} deshabilitado para venta automáticamente.`);
+            } else {
+              console.error('Error al deshabilitar vehículo para venta:', await vehiculoResponse.json());
+            }
+          } catch (errorVehiculo) {
+            console.error('Error de conexión al deshabilitar vehículo:', errorVehiculo);
+          }
 
           // Generar cuotas automáticamente si es un contrato a crédito con cuotas
           console.log('--- REVISIÓN GENERACIÓN CUOTAS AUTO ---');
@@ -1468,9 +1513,18 @@ export default {
                   {{ formData.color }}
                 </div>
               </div>
+              <div class="mb-3 row align-items-center">
+                <label for="habilitado_venta" class="col-md-2 col-form-label negrita">Habilitado para Venta</label>
+                <div class="col-md-4">
+                  <span :class="formData.habilitado_venta ? 'badge bg-success' : 'badge bg-danger'">
+                    {{ formData.habilitado_venta ? 'SÍ' : 'NO' }}
+                  </span>
+                </div>
+              </div>
 
               <div v-if="mostrarListaVehiculos" class="mt-4">
-                <h4 style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Vehículos Disponibles</h4>
+                <h4 style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Vehículos Disponibles
+                </h4>
                 <div class="mb-3">
                   <input type="text" class="form-control form-control-sm" v-model="filtroPatente"
                     placeholder="Filtrar por patente,  modelo" />
@@ -1485,6 +1539,7 @@ export default {
                       <th>Color</th>
                       <th>Año</th>
                       <th>Precio Venta</th>
+                      <th>Habilitado Venta</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1497,9 +1552,15 @@ export default {
                       <td>{{ vehiculo.color }}</td>
                       <td>{{ vehiculo.agno }}</td>
                       <td>{{ formatearMilesConPunto(vehiculo.precio_venta) }}</td>
+                      <td>
+                        <span :class="vehiculo.habilitado_venta ? 'badge bg-success' : 'badge bg-danger'">
+                          {{ vehiculo.habilitado_venta ? 'Sí' : 'No' }}
+                        </span>
+                      </td>
                     </tr>
                     <tr v-if="vehiculosFiltrados.length === 0">
-                      <td colspan="7" class="text-center">No se encontraron vehículos que coincidan con el filtro.</td>
+                      <td colspan="8" class="text-center">No se encontraron vehículos que coincidan con el filtro.
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -1613,7 +1674,8 @@ export default {
               <button type="button" class="btn btn-secondary btn-sm" @click="limpiarFormulario()">Limpiar</button>
             </div>
             <div class="col-md-auto ms-2">
-              <button type="button" class="btn btn-secondary btn-sm" @click="crearRegistro()">Nuevo</button>
+              <button type="button" class="btn btn-secondary btn-sm" @click="crearRegistro()"
+                :disabled="!formData.habilitado_venta">Nuevo</button>
             </div>
             <div class="col-md-auto ms-2">
               <button type="button" @click="handleSubmit" class="btn btn-secondary btn-sm"

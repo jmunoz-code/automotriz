@@ -54,20 +54,16 @@ export default {
       try {
         const apiUrl = `${import.meta.env.VITE_API_URL}login/`;
         console.log('url', apiUrl);
-        // Obtener el token CSRF de la cookie
-        const csrfToken = this.getCookie('csrftoken');
 
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken, // <-- ¡Añade el encabezado con el token aquí!
           },
           body: JSON.stringify({
             usuario: this.username,
             clave: this.password,
           }),
-          credentials: 'include',
         });
 
         if (!response.ok) {

@@ -1,12 +1,12 @@
 import Clientes from '@/views/Clientes.vue'
 
 import Gastos from '@/views/Gastos.vue'
-import Informe_arriendo from '@/views/Informe_arriendo.vue'
 
-import Tipo_arriendo from '@/views/Tipo_arriendo.vue'
-import Ingreso_arriendo from '@/views/Ingreso_arriendo.vue'
+
+
+
 import InformeVehiculos from '@/views/InformeVehiculos.vue'
-import DocumentacionVehiculos from '@/views/DocumentacionVehiculos.vue'
+
 import resumen from '@/views/resumen.vue'
 import Comprobante from '@/views/Comprobante.vue'
 import InformePagos1 from '@/views/InformePagos1.vue'
@@ -30,6 +30,7 @@ import TipoTrasmision from '@/views/TipoTrasmision.vue'
 import TipoPago from '@/views/TipoPago.vue'
 import Contratos from '@/views/Contratos.vue'
 import Administracion from '@/views/Administracion.vue'
+import TempAdmin from '@/views/TempAdmin.vue'
 import Error404 from '@/views/Error404.vue'
 
 import { createRouter, createWebHistory } from 'vue-router'
@@ -56,29 +57,12 @@ const router = createRouter({
             component: Informes,
             name: 'Informes'
         },
-        {
-            path: '/Ingreso_arriendo',
-            component: Ingreso_arriendo,
-            name: 'Ingreso_arriendo'
-        },
+
         {
             path: '/Gastos',
             component: Gastos,
             name: 'Gastos'
         },
-        {
-            path: '/Tipo_arriendo',
-            component: Tipo_arriendo,
-            name: 'Tipo_arriendo'
-        },
-
-        {
-            path: '/Informe_arriendo',
-            component: Informe_arriendo,
-            name: 'Informe_arriendo'
-        },
-
-
         {
             path: '/Comprobante',
             component: Comprobante,
@@ -204,10 +188,11 @@ const router = createRouter({
             component: AbonoCuotas,
         },
         {
-            path: '/DocumentacionVehiculos',
-            component: DocumentacionVehiculos,
-            name: 'DocumentacionVehiculos',
+            path: '/TempAdmin',
+            name: 'TempAdmin',
+            component: TempAdmin,
         },
+
         {
             path: '/:pathMatch(.*)*',
             component: Error404,
