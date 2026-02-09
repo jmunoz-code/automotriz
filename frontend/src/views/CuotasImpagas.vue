@@ -100,7 +100,7 @@ export default {
         // 1. Sumamos al monto total solo si la cuota está ATRASADA (dias_atraso > 0)
         // Convertimos explicitamente dias_atraso a número para evitar errores con strings
         const diasAtraso = parseInt(cuota.dias_atraso || 0);
-        if (diasAtraso > 0) {
+        if (diasAtraso > 10) {
           // ✅ AJUSTE FINAL: Usar cuota.monto_cuota para el monto total agrupado (como se solicitó).
           grupo.monto_total_impago += parseFloat(cuota.monto_cuota || 0);
           grupo.tiene_cuotas_atrasadas = true;
@@ -152,7 +152,7 @@ export default {
     // --- FUNCIÓN CLAVE: Manejar clic en la fila (Sin Cambios) ---
     const mostrarDetalles = (grupo) => {
       // Aplicamos el filtro para mostrar solo cuotas con días de atraso > 0
-      const cuotasAtrasadas = grupo.cuotas_detalles.filter(detalle => detalle.dias_atraso > 0);
+      const cuotasAtrasadas = grupo.cuotas_detalles.filter(detalle => detalle.dias_atraso > 10);
 
       detallesCuotas.value = cuotasAtrasadas;
       rutSeleccionado.value = grupo.rut_cliente;

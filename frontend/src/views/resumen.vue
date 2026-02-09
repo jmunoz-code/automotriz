@@ -14,7 +14,7 @@ export default {
         const isLoading = ref(false);
         const mensaje = ref('');
         const tipoMensaje = ref('');
-        
+
         // MODIFICACIÓN: Nuevas variables para capturar la respuesta de la API
         const totalPrecioVenta = ref(0);
         const totalCostos = ref(0);
@@ -28,7 +28,7 @@ export default {
 
                 if (response.ok) {
                     const data = await response.json();
-                    
+
                     // MODIFICACIÓN: Capturamos los 3 valores (neto, venta, costos)
                     totalPrecioVenta.value = data.total_precio_venta || 0;
                     totalCostos.value = data.total_costos || 0;
@@ -49,31 +49,31 @@ export default {
         };
 
         const cargarTotalImpagoReal = async () => {
-             try {
-                 // Usamos el endpoint de cuotas impagas para obtener la suma exacta de lo vencido
-                 // Esto asegura consistencia con la vista de CuotasImpagas.vue
-                 const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/cuotas_impagas/`;
-                 const response = await fetch(apiUrl);
+            try {
+                // Usamos el endpoint de cuotas impagas para obtener la suma exacta de lo vencido
+                // Esto asegura consistencia con la vista de CuotasImpagas.vue
+                const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/cuotas_impagas/`;
+                const response = await fetch(apiUrl);
 
-                 if (response.ok) {
-                     const data = await response.json();
-                     // Sumamos 'monto_cuota' de todas las cuotas que vienen en este endpoint (que ya son las atrasadas)
-                     // Ojo: En CuotasImpagas logic se sumaba si dias_atraso > 0.
-                     // El endpoint devuelve una lista plana de cuotas con dias_atraso calculados.
-                     // Filtramos por si acaso el endpoint trajera algo no vencido (aunque su nombre lo indica),
-                     // y sumamos.
-                     
-                     let suma = 0;
-                     data.forEach(cuota => {
-                         if (cuota.dias_atraso > 0) {
-                             suma += parseFloat(cuota.monto_cuota || 0);
-                         }
-                     });
-                     totalImpagoReal.value = suma;
-                 }
-             } catch (error) {
-                 console.error('Error cargando total impago real:', error);
-             }
+                if (response.ok) {
+                    const data = await response.json();
+                    // Sumamos 'monto_cuota' de todas las cuotas que vienen en este endpoint (que ya son las atrasadas)
+                    // Ojo: En CuotasImpagas logic se sumaba si dias_atraso > 0.
+                    // El endpoint devuelve una lista plana de cuotas con dias_atraso calculados.
+                    // Filtramos por si acaso el endpoint trajera algo no vencido (aunque su nombre lo indica),
+                    // y sumamos.
+
+                    let suma = 0;
+                    data.forEach(cuota => {
+                        if (cuota.dias_atraso > 10) {
+                            suma += parseFloat(cuota.monto_cuota || 0);
+                        }
+                    });
+                    totalImpagoReal.value = suma;
+                }
+            } catch (error) {
+                console.error('Error cargando total impago real:', error);
+            }
         };
 
         const porcentajeImpagoGeneral = computed(() => {
@@ -255,7 +255,7 @@ export default {
             listaCuotasProcesada,
             totalesGenerales,
             totalesGeneralesPendientes,
-            
+
             // MODIFICACIÓN: Exponer las nuevas variables
             totalPrecioVenta,
             totalCostos,
@@ -346,7 +346,7 @@ export default {
                                             <p class="mb-1 negrita">Capital Teórico **Pendiente**:</p>
                                             <h5>$ {{
                                                 formatearMilesConPunto(totalesGeneralesPendientes.totalCapitalAmortizado)
-                                                }}</h5>
+                                            }}</h5>
                                         </div>
                                         <div class="col-md-3">
                                             <p class="mb-1 negrita">Monto Total Cuota **Teórica Pendiente**:</p>
@@ -363,7 +363,7 @@ export default {
                                             </h5>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="row mt-4 pt-3 border-top">
                                         <div class="col-md-6 text-info">
                                             <p class="mb-1 negrita">Valorizacion Vehiculos (Venta)</p>
@@ -375,7 +375,7 @@ export default {
                                         </div>
                                     </div>
                                     <p class="mt-3 text-muted">
-                                      
+
                                     </p>
                                 </div>
                             </div>
