@@ -2,6 +2,7 @@
 import Header from '@/components/HeaderAdmin.vue';
 import Footer from '@/components/Footer.vue';
 import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 
 export default {
   components: {
@@ -9,6 +10,10 @@ export default {
     Footer,
   },
   setup() {
+    const route = useRoute();
+    const routeName = route.name || route.path.split('/').filter(s => s).pop() || 'Clientes';
+    const paginaOrigen = ref(routeName);
+
     const formData = ref({
       rut: '',
       nombres: '',
@@ -199,6 +204,8 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
           body: JSON.stringify(formData.value),
         });
@@ -231,6 +238,8 @@ export default {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
           body: JSON.stringify(formData.value),
         });
@@ -274,6 +283,8 @@ export default {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
         });
 
@@ -364,6 +375,7 @@ export default {
       nivel,
       usuario,
       handleHabilitadoChange,
+      paginaOrigen, // Added for dynamic page tracking
     };
   },
 };

@@ -1,7 +1,8 @@
 <script>
 import Header from '@/components/HeaderAdmin.vue';
 import Footer from '@/components/Footer.vue';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
 
@@ -14,6 +15,10 @@ export default {
   },
 
   setup() {
+    const route = useRoute();
+    const routeName = route.name || route.path.split('/').filter(s => s).pop() || 'Vehiculos';
+    const paginaOrigen = ref(routeName);
+
     const formData = ref({
       valorTotalFormateado: 0,
       tipo_vehiculo_id: null,
@@ -41,6 +46,7 @@ export default {
     });
 
     const nivel = ref(localStorage.getItem('user_nivel'));
+    const usuario = ref(localStorage.getItem('user_usuario'));
 
     const opcionestipo_vehiculo_id = ref([]);
     const opcionestipo_marca_id = ref([]);
@@ -407,6 +413,8 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
           body: JSON.stringify(payload),
         });
@@ -523,6 +531,8 @@ export default {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
           body: JSON.stringify(payload),
         });
@@ -558,6 +568,8 @@ export default {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
         });
 

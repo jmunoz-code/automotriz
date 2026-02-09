@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import Header from '@/components/HeaderAdmin.vue';
+import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
@@ -74,7 +74,7 @@ onMounted(() => {
             <div class="col-md-8 col-lg-6">
                 <div class="card shadow-lg border-0 rounded-lg">
                     <div class="card-header bg-gradient-success text-white text-center py-4">
-                        <h4 class="mb-0 fw-bold"><i class="fa fa-user-shield me-2"></i>Admin Temporal</h4>
+                        <h4 class="mb-0 fw-bold"><i class="fa fa-user-shield me-2"></i>Acceso Temporal</h4>
                     </div>
                     <div class="card-body p-5">
                         <p class="text-muted text-center mb-4">

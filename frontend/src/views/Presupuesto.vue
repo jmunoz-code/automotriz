@@ -2,7 +2,7 @@
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 import { onMounted, ref, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 export default {
   name: 'Presupuesto',
@@ -64,7 +64,11 @@ export default {
 
     // Nivel del usuario desde localStorage
     const nivel = ref(localStorage.getItem('user_nivel'));
+    const usuario = ref(localStorage.getItem('user_usuario'));
     const router = useRouter();
+    const route = useRoute();
+    const routeName = route.name || route.path.split('/').filter(s => s).pop() || 'Presupuesto';
+    const paginaOrigen = ref(routeName);
 
     const goToAdmin = () => {
       router.push({ name: 'Atributos' });
@@ -720,6 +724,8 @@ export default {
           method: method,
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
           body: JSON.stringify(payload),
         });
@@ -763,6 +769,8 @@ export default {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': paginaOrigen.value,
           },
         });
 
@@ -959,6 +967,7 @@ export default {
       vendedores,
       nivel,
       goToAdmin,
+      paginaOrigen, // Added for dynamic page tracking
 
     };
   },
@@ -981,7 +990,7 @@ export default {
       <h3>Cotización</h3>
       <br>
       <div style="text-align: right; font-weight: bold;">{{ formData.fecha }}</div>
-      
+
       <!-- Botón Admin visible si es admin -->
       <div v-if="(nivel === 'Admin' || nivel === 'Administrador')" style="text-align: center; margin-bottom: 20px;">
         <button type="button" @click="goToAdmin" class="btn btn-warning" style="width: 100%; font-weight: bold;">

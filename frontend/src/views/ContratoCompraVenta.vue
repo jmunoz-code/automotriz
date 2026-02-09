@@ -10,9 +10,9 @@ export default {
     Footer,
   },
   setup() {
-    
+
     const route = useRoute();
-    
+
     const formatearMilesConPunto = (valor) => {
       if (valor === null || valor === undefined || isNaN(valor)) {
         return '';
@@ -119,10 +119,20 @@ export default {
       this.populateVehiculoData(vehiculoApiResponse);
       this.populateContratoData(contratoApiResponse);
 
-      // La fecha del contrato principal debería ser la fecha actual del día en que se genera.
-      const today = new Date();
-      const options = { day: '2-digit', month: 'long', year: 'numeric' };
-      this.fechaContrato = today.toLocaleDateString('es-ES', options).toUpperCase();
+      // La fecha del contrato debe ser la fecha de creación del presupuesto
+      if (contratoApiResponse && contratoApiResponse.fecha_creacion) {
+        // Parsear manualmente para evitar problemas de zona horaria
+        const fechaStr = contratoApiResponse.fecha_creacion;
+        const [year, month, day] = fechaStr.split('-').map(Number);
+        const fechaCreacion = new Date(year, month - 1, day); // month - 1 porque los meses van de 0-11
+        const options = { day: '2-digit', month: 'long', year: 'numeric' };
+        this.fechaContrato = fechaCreacion.toLocaleDateString('es-ES', options).toUpperCase();
+      } else {
+        // Fallback a fecha actual si no hay fecha_creacion
+        const today = new Date();
+        const options = { day: '2-digit', month: 'long', year: 'numeric' };
+        this.fechaContrato = today.toLocaleDateString('es-ES', options).toUpperCase();
+      }
 
     } catch (err) {
       console.error("Error al cargar los datos del contrato:", err);
@@ -368,9 +378,9 @@ export default {
         <table class="first-section-table">
           <tr>
             <td class="label-col">Nombre:</td>
-            <td class="data-col"><span class="data-field">{{ nombreComprador}} {{apellidoComprador}}</span>
-            
-           
+            <td class="data-col"><span class="data-field">{{ nombreComprador }} {{ apellidoComprador }}</span>
+
+
             </td>
           </tr>
           <tr>

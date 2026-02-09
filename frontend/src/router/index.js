@@ -145,7 +145,7 @@ const router = createRouter({
         },
         {
             // ¡Esta es la parte CRÍTICA!
-            path: '/CartaResponsabilidad/:rut/:patente', // <--- Asegúrate que tu path esté así
+            path: '/CartaResponsabilidad/:rut/:patente/:idPrep', // <--- Asegúrate que tu path esté así
             name: 'CartaResponsabilidad',
             component: CartaResponsabilidad,
             props: true // <--- Esto también es fundamental

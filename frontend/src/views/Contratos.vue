@@ -58,6 +58,7 @@ export default {
     const vendedores = ref([]);
 
     // CORRECCIÓN CLAVE: Declarar 'calculo' como una ref para que sea reactiva
+    const usuario = ref(localStorage.getItem('user_usuario'));
     const calculo = ref(0); // Inicializa calculo con un valor reactivo, por ejemplo 0
 
 
@@ -122,7 +123,7 @@ export default {
       if (pagina == 2) {
         router.push({
           name: 'CartaResponsabilidad',
-          params: { rut: rutCliente, patente: contractPatente }
+          params: { rut: rutCliente, patente: contractPatente, idPrep: id }
         });
       }
     };
@@ -305,6 +306,8 @@ export default {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': 'Contratos',
           },
           body: JSON.stringify({ estado: nuevoEstadoDB }),
         });
@@ -448,6 +451,8 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': 'Contratos',
           }
         });
 
@@ -782,7 +787,7 @@ export default {
         return;
       }
 
-      if (!formData.value.habilitado_compra) {
+      if (!formData.value.habilitado_venta) {
         mostrarMensaje('El vehículo no está habilitado para crear contratos.', 'error');
         return;
       }
@@ -882,6 +887,8 @@ export default {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': 'Contratos',
           },
           body: JSON.stringify(payload),
         });
@@ -1037,6 +1044,8 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': 'Contratos',
           },
           body: JSON.stringify(payload),
         });
@@ -1053,6 +1062,8 @@ export default {
               method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',
+                'X-Usuario-Sesion': usuario.value || 'Anónimo',
+                'X-Pagina-Origen': 'Contratos',
               },
               body: JSON.stringify({ habilitado_venta: 0 }),
             });
@@ -1136,6 +1147,8 @@ export default {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',
+                'X-Usuario-Sesion': usuario.value || 'Anónimo',
+                'X-Pagina-Origen': 'Contratos',
               },
             });
             if (responsePagos.ok) {
@@ -1155,6 +1168,8 @@ export default {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',
+                'X-Usuario-Sesion': usuario.value || 'Anónimo',
+                'X-Pagina-Origen': 'Contratos',
               },
             });
             if (responseCuotas.ok) {
@@ -1174,6 +1189,8 @@ export default {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': 'Contratos',
           },
         });
 
@@ -1598,9 +1615,6 @@ export default {
                     name="fecha_creacion" v-model="formData.fecha_creacion" />
                 </div>
               </div>
-
-
-
 
               <div class="mb-3 row align-items-center">
                 <label for="vendedor" class="col-md-2 col-form-label negrita">Vendedor</label>

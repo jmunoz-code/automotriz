@@ -10,6 +10,10 @@ export default {
             type: String,
             required: true
         },
+        idPrep: {
+            type: [Number, String], // Puede venir como String desde la URL
+            required: true
+        },
         contract: {
             type: Object,
             required: false,
@@ -57,6 +61,7 @@ export default {
     async mounted() {
         console.log('DEBUG: RUT recibido en ContratoCompraventa:', this.rut);
         console.log('DEBUG: Patente recibida en ContratoCompraventa:', this.patente);
+        console.log('DEBUG: ID Presupuesto recibido:', this.idPrep);
 
         this.rutComprador = this.rut;
         this.vehiculoPatente = this.patente;
@@ -65,20 +70,31 @@ export default {
         this.error = null;
 
         try {
-            // Fetching only client and vehicle data as per "Carta de Responsabilidad" content
-            const [clienteApiResponse, vehiculoApiResponse] = await Promise.all([
+            // Fetching client, vehicle, and contract data
+            const [clienteApiResponse, vehiculoApiResponse, contratoApiResponse] = await Promise.all([
                 this.fetchClienteData(this.rut),
-                this.fetchVehiculoData(this.patente)
+                this.fetchVehiculoData(this.patente),
+                this.fetchContratoData(this.idPrep)
             ]);
 
             this.populateClienteData(clienteApiResponse);
             this.populateVehiculoData(vehiculoApiResponse);
 
-            // Set the contract date as per the image (May 30, 2025)
-            // Note: The image shows '19-ago-24' or '30 DE MAYO DE 2025'. I will use the current date based on context.
-            const today = new Date(); // Using the date from the image for consistency
-            const options = { day: '2-digit', month: 'long', year: 'numeric' };
-            this.fechaContrato = today.toLocaleDateString('es-ES', options).toUpperCase();
+            // La fecha de la carta debe ser la fecha de creación del presupuesto
+            if (contratoApiResponse && contratoApiResponse.fecha_creacion) {
+                // Parsear manualmente para evitar problemas de zona horaria
+                const fechaStr = contratoApiResponse.fecha_creacion;
+                const [year, month, day] = fechaStr.split('-').map(Number);
+                const fechaCreacion = new Date(year, month - 1, day); // month - 1 porque los meses van de 0-11
+                const options = { day: '2-digit', month: 'long', year: 'numeric' };
+                this.fechaContrato = fechaCreacion.toLocaleDateString('es-ES', options).toUpperCase();
+            } else {
+                // Fallback a fecha actual si no hay fecha_creacion
+                const today = new Date();
+                const options = { day: '2-digit', month: 'long', year: 'numeric' };
+                this.fechaContrato = today.toLocaleDateString('es-ES', options).toUpperCase();
+            }
+
 
         } catch (err) {
             console.error("Error al cargar los datos de la Carta de Responsabilidad:", err);
@@ -107,15 +123,15 @@ export default {
         }
     },
     methods: {
-            formatearMilesConPunto(valor) {
-      const formatter = new Intl.NumberFormat('de-DE'); // 'de-DE' for dot separator
-      return formatter.format(valor);
-    },
+        formatearMilesConPunto(valor) {
+            const formatter = new Intl.NumberFormat('de-DE'); // 'de-DE' for dot separator
+            return formatter.format(valor);
+        },
 
 
-       async fetchClienteData(rut) {
+        async fetchClienteData(rut) {
             const url = `${import.meta.env.VITE_API_URL}clientes/${rut}/`;
-            
+
             console.log('DEBUG: fetchClienteData - URL de API para cliente:', url);
 
             try {
@@ -134,7 +150,7 @@ export default {
         },
 
         async fetchVehiculoData(patente) {
-            
+
             const url = `${import.meta.env.VITE_API_URL}vehiculos/${patente}/`;
             console.log('DEBUG: fetchVehiculoData - URL de API para vehículo:', url);
 
@@ -151,9 +167,25 @@ export default {
                 throw error;
             }
         },
-        // No fetchContratoData is needed for "Carta de Responsabilidad" based on the images provided.
-        // If this component also needs to function as "Contrato de Compraventa" later,
-        // this method (and its corresponding calls) would need to be re-introduced.
+
+        async fetchContratoData(idPrep) {
+            const url = `${import.meta.env.VITE_API_URL}presupuesto/${idPrep}/`;
+            console.log('DEBUG: fetchContratoData - URL de API para presupuesto:', url);
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                const data = await response.json();
+                return data.data;
+            } catch (error) {
+                console.error("ERROR: Error al obtener Contrato del Cliente:", error);
+                throw error;
+            }
+        },
+
 
         populateClienteData(apiResponse) {
             const clienteData = apiResponse.data;
@@ -313,7 +345,8 @@ export default {
                     </tr>
                     <tr>
                         <td class="label-col">Kilometraje</td>
-                        <td class="data-col"><span class="data-field">{{ formatearMilesConPunto(vehiculoKilometraje) }}</span></td>
+                        <td class="data-col"><span class="data-field">{{ formatearMilesConPunto(vehiculoKilometraje)
+                                }}</span></td>
                     </tr>
                 </table>
             </div>

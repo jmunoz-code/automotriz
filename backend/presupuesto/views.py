@@ -120,7 +120,7 @@ class Clase2(APIView):
             presu = Presupuesto.objects.get(id=id)
             presu.delete()
             return Response(status=HTTPStatus.NO_CONTENT)
-        except presu.DoesNotExist:
+        except Presupuesto.DoesNotExist:
             raise NotFound(f"No se encontró : {id}")
         except Exception as e:
             return Response({"error": f"Ocurrio un error inesperado al eliminar: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)

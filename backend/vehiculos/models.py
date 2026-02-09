@@ -38,7 +38,7 @@ class Vehiculos(models.Model):
       #clase helper
     # cuando llamo modelo campo muetsre por defecto
     def __str__(self):
-              return f"{self.marca} {self.modelo} ({self.patente})"
+        return f"{self.tipo_marca} {self.modelo} ({self.patente})"
 
     class Meta:
         db_table = 'vehiculos'

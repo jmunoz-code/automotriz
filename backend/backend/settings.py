@@ -77,6 +77,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware', # <-- PUESTO AQUÍ
     'django.middleware.common.CommonMiddleware',
+    'backend.middleware.UsuarioSesionMiddleware',  # <-- Middleware personalizado para usuario
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -109,6 +110,18 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-usuario-sesion',  # Header personalizado para el usuario de sesión
+    'x-pagina-origen',   # Header personalizado para la página de origen (auditoría)
+]
+
+# Métodos HTTP permitidos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
 ]
 
 # (Configuraciones antiguas, las dejamos vacías para evitar conflictos)

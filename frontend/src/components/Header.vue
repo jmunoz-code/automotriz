@@ -1,24 +1,22 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
+const route = useRoute();
 
 const nivel = ref(null);
 const usuario = ref(null);
-const isMenuOpen = ref(false); // State for mobile menu
+const isMenuOpen = ref(false);
+
+// Estados para controlar los submenús (Desktop hover / Móvil toggle)
+const mostrarClientesSubmenu = ref(false);
+const mostrarVehiculosSubmenu = ref(false);
+const mostrarInformesSubmenu = ref(false);
 
 const toggleMenu = () => {
     isMenuOpen.value = !isMenuOpen.value;
 };
-
-// Variables de submenús... (se mantienen sin cambios)
-const mostrarClientesSubmenu = ref(false);
-const mostrarVehiculosSubmenu = ref(false);
-const mostrarTipoVehiculoSubmenu = ref(false);
-const mostrarTipoCombustibleSubmenu = ref(false);
-const mostrarTipoTrasmisionSubmenu = ref(false);
-const mostrarSobreNosotrosSubmenu = ref(false);
 
 onMounted(() => {
     nivel.value = localStorage.getItem('user_nivel');
@@ -26,19 +24,14 @@ onMounted(() => {
 });
 
 const logout = () => {
-    localStorage.removeItem('user_nivel');
-    localStorage.removeItem('user_usuario');
-    localStorage.removeItem('user_id');
+    localStorage.clear();
     nivel.value = null;
     usuario.value = null;
-    isMenuOpen.value = false; // Close menu on logout
+    isMenuOpen.value = false;
     router.push('/');
 };
 
-import { watch } from 'vue';
-import { useRoute } from 'vue-router';
-const route = useRoute();
-
+// Cerrar el menú lateral al navegar a otra página
 watch(route, () => {
     isMenuOpen.value = false;
 });
@@ -46,106 +39,71 @@ watch(route, () => {
 
 <template>
     <header class="header-area">
+        <div v-if="isMenuOpen" class="menu-overlay" @click="toggleMenu"></div>
+
         <div class="top-header-area">
             <div class="container h-100">
                 <div class="row h-100 align-items-center justify-content-between">
                     <div class="col-12 col-sm-6">
                         <div class="breaking-news">
-                            <div id="breakingNewsTicker" class="ticker">
-                                <ul>
-                                    <li><a href="mailto:ventas@nicolasautomotriz.cl">ventas@nicolasautomotriz.cl</a>
-                                    </li>
-                                </ul>
-                            </div>
+                            <a href="mailto:ventas@nicolasautomotriz.cl" class="text-white small">ventas@nicolasautomotriz.cl</a>
                         </div>
                     </div>
-                    <div class="col-12 col-sm-6">
-                        <div class="top-social-info text-right">
-                            <a href="#"><i class="fa fa-pinterest" aria-hidden="true"></i></a>
-                            <a href="#"><i class="fa fa-facebook" aria-hidden="true"></i></a>
-                            <a href="#"><i class="fa fa-twitter" aria-hidden="true"></i></a>
+                    <div class="col-12 col-sm-6 text-end d-none d-sm-block">
+                        <div class="top-social-info">
+                            <a href="#"><i class="fa fa-facebook"></i></a>
+                            <a href="#"><i class="fa fa-instagram"></i></a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
         <div class="delicious-main-menu">
             <div class="classy-nav-container container-fluid">
-                <nav class="classy-navbar justify-content-between" id="deliciousNav">
+                <nav class="classy-navbar justify-content-between">
                     <router-link class="nav-brand" to="/">
-                        <img src="/img/core-img/logo.png" alt="logo" style="width:270px; height:100px" />
+                        <img src="/img/core-img/logo.png" alt="logo" class="logo-img" />
                     </router-link>
 
                     <div class="classy-navbar-toggler" @click="toggleMenu">
-                        <span class="navbarToggler"><span></span><span></span><span></span></span>
+                        <span class="navbarToggler" :class="{ 'active': isMenuOpen }">
+                            <span></span><span></span><span></span>
+                        </span>
                     </div>
 
                     <div class="classy-menu" :class="{ 'menu-on': isMenuOpen }">
                         <div class="classycloseIcon" @click="toggleMenu">
                             <div class="cross-wrap"><span class="top"></span><span class="bottom"></span></div>
                         </div>
+
                         <div class="classynav">
-                            <ul class="w-100">
-                                <nav class="w-100">
-                                    <ul class="w-100">
-                                        <li>
-                                            <router-link to="/" title="Home">Inicio</router-link>
-                                        </li>
-                                        <li>
-                                            <router-link to="/Presupuesto"
-                                                title="Creación de Presupuestos">Presupuestos</router-link>
-                                        </li>
+                            <ul>
+                                <li><router-link to="/">Inicio</router-link></li>
+                                <li><router-link to="/Presupuesto">Presupuestos</router-link></li>
+                              
+                                <li v-if="usuario === 'JMUNOZ' || usuario === 'VVERGARA'">
+                                    <router-link to="/TempAdmin">Acceso Temporal</router-link>
+                                </li>
 
-                                        <li>
-                                            <router-link to="/TempAdmin"
-                                                title="Creación de Presupuestos">TempAdmin</router-link>
-                                        </li>
+                                <li><router-link to="/Contratos">Contratos</router-link></li>
+                                <li><router-link to="/ListaCuotas">Pagos</router-link></li>
 
-                                        <li>
-                                            <router-link to="/Contratos"
-                                                title="Creacion de Contratos">Contratos</router-link>
-                                        </li>
-                                        <li>
-                                            <router-link to="/ListaCuotas" title="Listados CLientes">Pagos</router-link>
-                                        </li>
-                                        <li>
-                                            <router-link to="/CuotasImpagas" title="Informes de Cuotas Impagas">Informe
-                                                Cuotas Impagas</router-link>
-                                        </li>
-                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
-
-                                            <router-link to="/Informes"
-                                                title="Informes Utilidades Negocios Utilidad Ventas">Informe
-                                                Ventas</router-link>
-                                        </li>
-                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
-                                            <router-link to="/InformePagos1"
-                                                title="Informes 1 Utilidades Créditos">Informe Créditos</router-link>
-                                        </li>
-
-                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
-                                            <router-link to="/InformeVehiculos"
-                                                title="Informes Vehiculos Propiedad Automotora">Informe Vehiculos
-                                                P.A.</router-link>
-                                        </li>
-                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
-                                            <router-link to="/resumen" title="Informes Resumen">Informe
-                                                Resumen</router-link>
-                                        </li>
-
-                                        <li v-if="usuario == 'JMUNOZ' || usuario == 'VVERGARA'">
-                                            <router-link to="/Auditoria"
-                                                title="Auditoría del Sistema">Auditoría</router-link>
-                                        </li>
-
-                                        <li>
-                                            <RouterLink to="/Administracion">Admin</RouterLink>
-                                        </li>
-                                        <li>
-                                            <a href="#" @click.prevent="logout">Cerrar Sesión</a>
-                                        </li>
+                                <li @mouseenter="mostrarInformesSubmenu = true" @mouseleave="mostrarInformesSubmenu = false" v-if="usuario === 'JMUNOZ' || usuario === 'VVERGARA'">
+                                    <a href="javascript:void(0)">Informes <i class="fa fa-angle-down"></i></a>
+                                    <ul class="dropdown" v-show="mostrarInformesSubmenu">
+                                        <li><router-link to="/CuotasImpagas">Informe Cuotas</router-link></li>
+                                        <li><router-link to="/Informes">Informe Ventas</router-link></li>
+                                        <li><router-link to="/InformePagos1">Informe Créditos</router-link></li>
+                                        <li><router-link to="/Auditoria">Auditoria</router-link></li>
                                     </ul>
-                                </nav>
+                                </li>
+                               
+                                <li><router-link to="/Administracion">Admin</router-link></li>
+                                
+                                <li class="logout-item">
+                                    <a href="#" @click.prevent="logout">Cerrar Sesión</a>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -156,70 +114,71 @@ watch(route, () => {
 </template>
 
 <style scoped>
-/* Estilos CSS - Se mantiene sin cambios ya que el problema es en la plantilla. */
-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-}
+.logo-img { width: 200px; height: auto; }
 
-nav ul li {
-    position: relative;
-}
+/* Desktop Styles */
+.classy-navbar { display: flex; align-items: center; height: 90px; }
+.classynav ul { display: flex; list-style: none; margin: 0; padding: 0; }
+.classynav ul li { position: relative; }
+.classynav ul li a { padding: 15px 12px; font-weight: 600; color: #444; font-size: 14px; text-decoration: none; }
 
-nav ul li a {
-    display: block;
-    padding: 10px 15px;
-    text-decoration: none;
-    color: #333;
-}
-
-nav ul li a:hover {
-    background-color: #f0f0f0;
-}
-
-.submenu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+/* Submenu / Dropdown */
+.dropdown {
     position: absolute;
+    background: #fff;
+    width: 220px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     top: 100%;
     left: 0;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    min-width: 350px;
+    z-index: 100;
+    padding: 10px 0;
+    border-top: 3px solid #fc6c27;
+}
+.dropdown li a { padding: 8px 20px !important; font-size: 13px; }
+
+/* Mobile Overlay */
+.menu-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 998;
 }
 
-.submenu li a {
-    display: block;
-    padding: 8px 12px;
-    text-decoration: none;
-    color: #333;
-}
+/* --- RESPONSIVE LOGIC --- */
+.classy-navbar-toggler { display: none; cursor: pointer; }
+.navbarToggler span { display: block; width: 25px; height: 3px; background: #333; margin: 4px 0; }
 
-.submenu li a:hover {
-    background-color: #eee;
-}
-
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.slide-fade-enter-from {
-    opacity: 0;
-    transform: translateY(-10px);
-}
-
-.slide-fade-leave-to {
-    opacity: 0;
-    transform: translateY(-10px);
-}
-
-.submenu[v-show='false'] {
-    display: none;
+@media screen and (max-width: 1100px) {
+    .classy-navbar-toggler { display: block; }
+    
+    .classy-menu {
+        position: fixed;
+        top: 0; left: -310px;
+        width: 300px; height: 100%;
+        background: #fff;
+        z-index: 999;
+        transition: 0.4s;
+        padding: 60px 20px;
+        overflow-y: auto;
+    }
+    
+    .classy-menu.menu-on { left: 0; }
+    
+    .classynav ul { flex-direction: column; }
+    .classynav ul li { width: 100%; border-bottom: 1px solid #f5f5f5; }
+    
+    /* En móvil los dropdowns se integran verticalmente */
+    .dropdown {
+        position: static;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        display: block; /* Visibles en el menú móvil para facilitar navegación */
+        background: #fafafa;
+        padding-left: 15px;
+    }
+    
+    .classycloseIcon { position: absolute; top: 20px; right: 20px; }
+    .logout-item a { color: #d9534f !important; }
 }
 </style>

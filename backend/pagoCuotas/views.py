@@ -231,8 +231,8 @@ class PagoCuotasAPIView(APIView):
             # Determinar qué cambió
             valor_nuevo = f"Monto: {cuota_actualizada.monto_cuota}, Obs: {cuota_actualizada.observacion}"
             
-            # Intentar obtener usuario (si está autenticado, sino usar 'system' o similar)
-            usuario = str(request.user) if request.user else 'Anonimo'
+            # Obtener usuario desde el middleware (capturado del header X-Usuario-Sesion)
+            usuario = getattr(request, 'usuario_sesion', None) or 'Sistema'
             
             registrar_auditoria(
                 usuario=usuario,

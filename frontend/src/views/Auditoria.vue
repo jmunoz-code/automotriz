@@ -149,18 +149,18 @@ export default {
 
                 <!-- Tabla -->
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover table-bordered table-sm">
+                    <table class="table table-striped table-hover table-bordered table-sm" style="table-layout: fixed;">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 50px;">ID</th>
-                                <th style="width: 150px;">Fecha/Hora</th>
-                                <th style="width: 120px;">Usuario</th>
-                                <th style="width: 150px;">Página</th>
-                                <th style="width: 100px;">Acción</th>
-                                <th style="width: 120px;">Módulo/Tabla</th>
-                                <th>Descripción</th>
-                                <th>Valor Anterior</th>
-                                <th>Valor Nuevo</th>
+                                <th style="width: 40px;">ID</th>
+                                <th style="width: 115px;">Fecha/Hora</th>
+                                <th style="width: 90px;">Usuario</th>
+                                <th style="width: 115px;">Página</th>
+                                <th style="width: 75px;">Acción</th>
+                                <th style="width: 90px;">Módulo/Tabla</th>
+                                <th style="width: 115px;">Descripción</th>
+                                <th style="width: 115px;">Valor Anterior</th>
+                                <th style="width: 115px;">Valor Nuevo</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -175,10 +175,11 @@ export default {
                                 <td colspan="9" class="text-center p-4">No se encontraron registros de auditoría.</td>
                             </tr>
                             <tr v-for="log in registrosPaginados" :key="log.id">
-                                <td class="text-center">{{ log.id }}</td>
-                                <td>{{ log.fecha_hora_formateada }}</td>
-                                <td class="fw-bold">{{ log.usuario }}</td>
-                                <td>{{ log.pagina }}</td>
+                                <td class="text-center text-truncate">{{ log.id }}</td>
+                                <td class="text-truncate" :title="log.fecha_hora_formateada">{{
+                                    log.fecha_hora_formateada }}</td>
+                                <td class="fw-bold text-truncate" :title="log.usuario">{{ log.usuario }}</td>
+                                <td class="text-truncate" :title="log.pagina">{{ log.pagina }}</td>
                                 <td class="text-center">
                                     <span :class="{
                                         'badge bg-success': log.accion === 'CREAR',
@@ -186,8 +187,8 @@ export default {
                                         'badge bg-danger': log.accion === 'ELIMINAR'
                                     }">{{ log.accion }}</span>
                                 </td>
-                                <td>{{ log.modulo_tabla }}</td>
-                                <td class="small">{{ log.descripcion }}</td>
+                                <td class="text-truncate" :title="log.modulo_tabla">{{ log.modulo_tabla }}</td>
+                                <td class="small description-cell">{{ log.descripcion }}</td>
                                 <td class="small text-muted font-monospace">{{ log.valor_anterior || '-' }}</td>
                                 <td class="small text-primary font-monospace">{{ log.valor_nuevo || '-' }}</td>
                             </tr>
@@ -219,7 +220,14 @@ export default {
 .font-monospace {
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.85em;
-    max-width: 200px;
+    max-width: 115px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.description-cell {
+    max-width: 115px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -229,9 +237,10 @@ export default {
     vertical-align: middle;
 }
 
-.font-monospace:hover {
+.font-monospace:hover,
+.description-cell:hover {
     white-space: normal;
-    word-break: break-all;
+    word-break: break-word;
     max-width: none;
     position: relative;
     z-index: 10;
