@@ -528,8 +528,11 @@
               eliminarSeleccionadas,
               calcularPagoCapital: (cuota) => {
                 const monto = parseFloat(cuota.monto_cuota) || 0;
+                const abono = parseFloat(cuota.abono_total) || 0;
                 const interes = parseFloat(cuota.interes_calculado) || 0;
-                return monto - interes;
+                // Usa el pago efectivo (el mayor entre monto y abono)
+                const pagoEfectivo = Math.max(monto, abono);
+                return pagoEfectivo - interes;
               },
               calcularTotalPago: (cuota) => {
                 const capital = parseFloat(cuota.monto_a_financiar_calculado) || 0;
@@ -542,10 +545,97 @@
                 // Si abonó igual o más que la cuota, el saldo es 0
                 // Si abonó menos, el saldo es la diferencia
                 return abono >= monto ? 0 : monto - abono;
-              }
+              },
+              totalCapital: computed(() => {
+                // El capital total debe ser el de la última cuota (capital restante)
+                const cuotas = cuotasDeClienteSeleccionado.value;
+                if (cuotas.length === 0) return 0;
+                const ultimaCuota = cuotas[cuotas.length - 1];
+                // Calcular el capital restante: capital actual - amortización de esta cuota
+                const capitalActual = parseFloat(ultimaCuota.monto_a_financiar_calculado) || 0;
+                const monto = parseFloat(ultimaCuota.monto_cuota) || 0;
+                const abono = parseFloat(ultimaCuota.abono_total) || 0;
+                const interes = parseFloat(ultimaCuota.interes_calculado) || 0;
+                const pagoEfectivo = Math.max(monto, abono);
+                const amortizacion = pagoEfectivo - interes;
+                return capitalActual - amortizacion;
+              }),
+              totalInteres: computed(() => {
+                // El interés total debe ser el interés calculado sobre el capital restante
+                const cuotas = cuotasDeClienteSeleccionado.value;
+                if (cuotas.length === 0) return 0;
+                const ultimaCuota = cuotas[cuotas.length - 1];
+
+                // Calcular el capital restante
+                const capitalActual = parseFloat(ultimaCuota.monto_a_financiar_calculado) || 0;
+                const monto = parseFloat(ultimaCuota.monto_cuota) || 0;
+                const abono = parseFloat(ultimaCuota.abono_total) || 0;
+                const interes = parseFloat(ultimaCuota.interes_calculado) || 0;
+                const pagoEfectivo = Math.max(monto, abono);
+                const amortizacion = pagoEfectivo - interes;
+                const capitalRestante = capitalActual - amortizacion;
+
+                // Calcular el interés sobre el capital restante
+                const tasaInteres = parseFloat(ultimaCuota.interes_mensual) || 0;
+                return capitalRestante > 0 ? (capitalRestante * tasaInteres) / 100 : 0;
+              }),
+              totalAmortizacion: computed(() => {
+                return cuotasDeClienteSeleccionado.value.reduce((sum, cuota) => {
+                  const monto = parseFloat(cuota.monto_cuota) || 0;
+                  const abono = parseFloat(cuota.abono_total) || 0;
+                  const interes = parseFloat(cuota.interes_calculado) || 0;
+                  const pagoEfectivo = Math.max(monto, abono);
+                  return sum + (pagoEfectivo - interes);
+                }, 0);
+              }),
+              totalCapitalInteres: computed(() => {
+                // Debe ser la suma del total de capital + total de interés
+                const cuotas = cuotasDeClienteSeleccionado.value;
+                if (cuotas.length === 0) return 0;
+
+                // Calcular capital restante
+                const ultimaCuota = cuotas[cuotas.length - 1];
+                const capitalActual = parseFloat(ultimaCuota.monto_a_financiar_calculado) || 0;
+                const monto = parseFloat(ultimaCuota.monto_cuota) || 0;
+                const abono = parseFloat(ultimaCuota.abono_total) || 0;
+                const interes = parseFloat(ultimaCuota.interes_calculado) || 0;
+                const pagoEfectivo = Math.max(monto, abono);
+                const amortizacion = pagoEfectivo - interes;
+                const capitalRestante = capitalActual - amortizacion;
+
+                // Calcular interés sobre capital restante
+                const tasaInteres = parseFloat(ultimaCuota.interes_mensual) || 0;
+                const interesCalculado = capitalRestante > 0 ? (capitalRestante * tasaInteres) / 100 : 0;
+
+                return capitalRestante + interesCalculado;
+              }),
+              totalMontoCuota: computed(() => {
+                return cuotasDeClienteSeleccionado.value.reduce((sum, cuota) => {
+                  return sum + (parseFloat(cuota.monto_cuota) || 0);
+                }, 0);
+              }),
+              totalInteresMora: computed(() => {
+                return cuotasDeClienteSeleccionado.value.reduce((sum, cuota) => {
+                  return sum + (parseFloat(cuota.interes_mora) || 0);
+                }, 0);
+              }),
+              totalAbonado: computed(() => {
+                return cuotasDeClienteSeleccionado.value.reduce((sum, cuota) => {
+                  return sum + (parseFloat(cuota.abono_total) || 0);
+                }, 0);
+              }),
+              totalSaldo: computed(() => {
+                return cuotasDeClienteSeleccionado.value.reduce((sum, cuota) => {
+                  const monto = parseFloat(cuota.monto_cuota) || 0;
+                  const abono = parseFloat(cuota.abono_total) || 0;
+                  const saldo = abono >= monto ? 0 : monto - abono;
+                  return sum + saldo;
+                }, 0);
+              })
             };
-          },
+          }
         };
+
 </script>
 
 
@@ -720,6 +810,25 @@
                   </td>
                 </tr>
               </tbody>
+              <tfoot>
+                <tr style="background-color: #f8f9fa; font-weight: bold; border-top: 2px solid #dee2e6;">
+                  <td v-if="!mostrarHistorico"></td>
+                  <td style="text-align: center">TOTAL</td>
+                  <td></td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(totalCapital, 2) }}</td>
+                  <td></td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(totalInteres, 2) }}</td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(totalAmortizacion, 2) }}</td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(totalCapitalInteres, 2) }}</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td v-if="!mostrarHistorico"></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>

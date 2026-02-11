@@ -30,17 +30,21 @@
                     <strong>Monto:</strong> $ {{ formatearMilesConPunto(abono.monto_total) }}
                   </div>
                   <div class="botones-accion d-flex">
-                    <button type="button" class="btn btn-primary btn-sm me-2"
-                      @click="imprimirModal(abono.id)" title="Imprimir Comprobante">
+                    <button type="button" class="btn btn-primary btn-sm me-2" @click="imprimirModal(abono.id)"
+                      title="Imprimir Comprobante">
                       <i class="bi bi-printer"></i> Imprimir
                     </button>
-                    <button type="button" class="btn btn-danger btn-sm"
-                      @click="confirmDeleteAbono(abono.id)" title="Eliminar Abono">
+                    <button type="button" class="btn btn-danger btn-sm" @click="confirmDeleteAbono(abono.id)"
+                      title="Eliminar Abono">
                       <i class="bi bi-trash"></i> Borrar
                     </button>
                   </div>
                 </li>
               </ul>
+              <!-- Fila de TOTAL -->
+              <div class="mt-3 p-3 bg-light border rounded">
+                <strong style="font-size: 1.1em;">TOTAL ABONADO: $ {{ formatearMilesConPunto(totalAbonos) }}</strong>
+              </div>
             </div>
             <div v-else class="alert alert-info" role="alert">
               No se han encontrado abonos registrados para esta cuota.
@@ -61,7 +65,7 @@
 </template>
 
 <script>
-import { ref, watch, toRefs } from 'vue';
+import { ref, watch, toRefs, computed } from 'vue';
 import { useRouter } from 'vue-router'; // 👈 IMPORTACIÓN CLAVE
 export default {
   props: {
@@ -89,7 +93,7 @@ export default {
       if (isNaN(num)) {
         return '0';
       }
-     
+
       const formatter = new Intl.NumberFormat('de-DE');
       return formatter.format(num);
     };
@@ -97,28 +101,28 @@ export default {
     const formatearFechaHora = (fechaISO) => {
       if (!fechaISO) return '';
       // Intentar una conversión más robusta, asumiendo que el formato ISO es válido
-      const date = new Date(fechaISO); 
+      const date = new Date(fechaISO);
       // Si la fecha es inválida, se muestra la cadena vacía
-      if (isNaN(date.getTime())) return fechaISO; 
-      
+      if (isNaN(date.getTime())) return fechaISO;
+
       const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
       return date.toLocaleDateString('es-ES', options);
     };
-    
+
     // --- NUEVA FUNCIÓN PARA NAVEGAR A COMPROBANTE ---
     const imprimirModal = (abonoId) => {
-        if (abonoId) {
-            router.push({ 
-                name: 'comprobante', // 👈 Nombre de la ruta configurada en el router/index.js
-                params: { 
-                    id: abonoId       // 👈 Pasa el ID del abono
-                } 
-            });
-            // NOTA: El modal no se cierra aquí, ya que el usuario podría querer volver.
-            // La navegación simplemente oculta este modal al cambiar de ruta.
-        } else {
-            alert('ID de abono no válido para imprimir.');
-        }
+      if (abonoId) {
+        router.push({
+          name: 'comprobante', // 👈 Nombre de la ruta configurada en el router/index.js
+          params: {
+            id: abonoId       // 👈 Pasa el ID del abono
+          }
+        });
+        // NOTA: El modal no se cierra aquí, ya que el usuario podría querer volver.
+        // La navegación simplemente oculta este modal al cambiar de ruta.
+      } else {
+        alert('ID de abono no válido para imprimir.');
+      }
     };
     // ------------------------------------------------
 
@@ -135,9 +139,9 @@ export default {
           const data = await response.json();
           // Asumo que 'data' contiene los abonos directamente, o en data.data
           abonos.value = data.data.map(abono => ({
-             ...abono,
-             // Asegura que el monto total esté presente para la vista
-             monto_total: parseFloat(abono.monto_total || abono.monto_cuota || 0) 
+            ...abono,
+            // Asegura que el monto total esté presente para la vista
+            monto_total: parseFloat(abono.monto_total || abono.monto_cuota || 0)
           })) || [];
           console.log("DEBUG: Abonos fetched:", abonos.value);
         } else {
@@ -202,6 +206,13 @@ export default {
       emit('close');
     };
 
+    // Computed property para calcular el total de todos los abonos
+    const totalAbonos = computed(() => {
+      return abonos.value.reduce((sum, abono) => {
+        return sum + (parseFloat(abono.monto_total) || 0);
+      }, 0);
+    });
+
     return {
       show,
       cuota,
@@ -212,6 +223,7 @@ export default {
       closeModal,
       confirmDeleteAbono,
       imprimirModal, // 👈 FUNCIÓN DISPONIBLE EN EL TEMPLATE
+      totalAbonos,
     };
   },
 };
@@ -263,6 +275,6 @@ export default {
 
 /* Estilo para espaciar los botones */
 .botones-accion button {
-    margin-left: 5px;
+  margin-left: 5px;
 }
 </style>
