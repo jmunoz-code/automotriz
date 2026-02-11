@@ -82,7 +82,7 @@ export default {
         }
 
         // Redirigir siempre a Presupuesto
-        this.$router.push('/presupuesto');
+        this.$router.push('/Inicio');
 
       } catch (err) {
         console.error('Error durante el login:', err);

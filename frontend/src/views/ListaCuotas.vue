@@ -34,6 +34,52 @@
             // const mostrarSoloMora = ref(true); // Ya no se usa explícitamente con switch, es implícito en la vista principal
 
 
+            const cuotasSeleccionadas = ref([]);
+
+            const eliminarSeleccionadas = async () => {
+              if (cuotasSeleccionadas.value.length === 0) {
+                mostrarMensaje('No hay cuotas seleccionadas.', 'warning');
+                return;
+              }
+
+              if (!confirm(`¿Está seguro de que desea eliminar las ${cuotasSeleccionadas.value.length} cuotas seleccionadas? Esta acción no se puede deshacer.`)) {
+                return;
+              }
+
+              isLoading.value = true;
+              let nExitos = 0;
+              let nErrores = 0;
+
+              const ids = [...cuotasSeleccionadas.value];
+
+              const promises = ids.map(async (id) => {
+                try {
+                  const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_id/${id}/`;
+                  const response = await fetch(apiUrl, {
+                    method: 'DELETE',
+                  });
+                  if (response.ok) return true;
+                  return false;
+                } catch (e) {
+                  return false;
+                }
+              });
+
+              const results = await Promise.all(promises);
+              nExitos = results.filter((r) => r).length;
+              nErrores = results.filter((r) => !r).length;
+
+              isLoading.value = false;
+              cuotasSeleccionadas.value = []; // Limpiar selección
+              cargarListaDeCuotas(); // Recargar lista
+
+              if (nErrores === 0) {
+                mostrarMensaje(`Se eliminaron ${nExitos} cuotas exitosamente.`, 'success');
+              } else {
+                mostrarMensaje(`Se eliminaron ${nExitos} cuotas. Hubo error en ${nErrores}.`, 'warning');
+              }
+            };
+
             const formatearMilesConPunto = (valor) => {
               if (valor === null || valor === undefined) {
                 return '';
@@ -149,34 +195,7 @@
               }
             };
 
-            const eliminarUnaCuota = async (cuotaId) => {
-              const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_id/${cuotaId}/`;
-              console.log('URL:', apiUrl);
-              if (!confirm('¿Está seguro de que desea eliminar esta cuota? Esta acción no se puede deshacer.')) {
-                return;
-              }
-              isLoading.value = true;
-              try {
-                const apiUrl = `${import.meta.env.VITE_API_URL}pagocuotas/eliminar_por_id/${cuotaId}/`;
-                console.log('URL:', apiUrl);
-                const response = await fetch(apiUrl, {
-                  method: 'DELETE',
-                });
-                if (response.ok) {
-                  mostrarMensaje('Cuota eliminada exitosamente.', 'success');
-                  cargarListaDeCuotas();
-                } else {
-                  const errorData = await response.json();
-                  console.error('Error eliminando la cuota:', errorData.message || response.statusText);
-                  mostrarMensaje(errorData.message || 'Error al eliminar la cuota.', 'error');
-                }
-              } catch (error) {
-                console.error('Error de conexión al eliminar cuota:', error);
-                mostrarMensaje('Error de conexión con el servidor al intentar eliminar la cuota.', 'error');
-              } finally {
-                isLoading.value = false;
-              }
-            };
+
 
             const abrirModalEdicion = (cuota) => {
               cuotaParaEditar.value = { ...cuota };
@@ -242,10 +261,6 @@
             };
 
             const actualizarInteresMora = async (cuotaId, nuevoMonto) => {
-              if (nivel.value !== 'ADMIN') {
-                mostrarMensaje('Acción no permitida. Solo administradores pueden modificar el interés por mora.', 'error');
-                return;
-              }
 
               // Asegurar que el valor sea un número entero
               let montoEntero = Math.round(parseFloat(nuevoMonto));
@@ -328,15 +343,21 @@
                 }
 
                 // Calcula el interés de la cuota actual en base al capital restante.
-                const interesCalculado = (capitalRestante * nuevaCuota.interes_mensual) / 100;
+                const interesMensual = parseFloat(nuevaCuota.interes_mensual) || 0;
+                const interesCalculado = capitalRestante > 0 ? (capitalRestante * interesMensual) / 100 : 0;
                 nuevaCuota.interes_calculado = interesCalculado;
 
+                // Determinar el monto efectivo para el cálculo (si se abonó más que la cuota, se usa el abono)
+                const montoCuota = parseFloat(nuevaCuota.monto_cuota) || 0;
+                const abonoTotal = parseFloat(nuevaCuota.abono_total) || 0;
+                const pagoEfectivo = Math.max(montoCuota, abonoTotal);
+
                 // Calcula el pago de capital de la cuota actual.
-                const pagoCapital = nuevaCuota.monto_cuota - interesCalculado;
+                const pagoCapital = pagoEfectivo - interesCalculado;
                 nuevaCuota.pago_capital = pagoCapital;
 
                 // Asigna el capital restante actual a la propiedad de la cuota.
-                nuevaCuota.monto_a_financiar_calculado = capitalRestante;
+                nuevaCuota.monto_a_financiar_calculado = Math.abs(capitalRestante);
 
                 // Actualiza el capital restante para la siguiente iteración.
                 capitalRestante -= pagoCapital;
@@ -399,10 +420,8 @@
               if (mostrarHistorico.value || filtroRutCuota.value || filtroPatenteCuota.value) {
                 return resultados;
               }
-
               // En la vista general (sin filtros), solo mostramos los que tienen deuda pendiente
               return resultados.filter(g => g.tiene_deuda);
-
 
             });
 
@@ -421,6 +440,7 @@
 
             const volverALista = () => {
               clienteSeleccionado.value = null;
+              cuotasSeleccionadas.value = []; // Limpiar selección al volver
             };
 
             const cambiarEstadoPresupuesto = async () => {
@@ -464,8 +484,6 @@
               }
             };
 
-
-
             watch([filtroRutCuota, filtroPatenteCuota, mostrarHistorico], () => {
               cargarListaDeCuotas();
             });
@@ -495,8 +513,6 @@
               cerrarModalGrabar,
               handleAbonoRegistrado,
               actualizarObservacion,
-              eliminarUnaCuota,
-              cuotasConCalculoDeCapital,
               cuotasConCalculoDeCapital,
               grabarEdicionCuota,
               actualizarInteresMora,
@@ -508,8 +524,25 @@
               volverALista,
               mostrarHistorico,
               cambiarEstadoPresupuesto,
-
-
+              cuotasSeleccionadas,
+              eliminarSeleccionadas,
+              calcularPagoCapital: (cuota) => {
+                const monto = parseFloat(cuota.monto_cuota) || 0;
+                const interes = parseFloat(cuota.interes_calculado) || 0;
+                return monto - interes;
+              },
+              calcularTotalPago: (cuota) => {
+                const capital = parseFloat(cuota.monto_a_financiar_calculado) || 0;
+                const interes = parseFloat(cuota.interes_calculado) || 0;
+                return capital + interes;
+              },
+              calcularSaldo: (cuota) => {
+                const monto = parseFloat(cuota.monto_cuota) || 0;
+                const abono = parseFloat(cuota.abono_total) || 0;
+                // Si abonó igual o más que la cuota, el saldo es 0
+                // Si abonó menos, el saldo es la diferencia
+                return abono >= monto ? 0 : monto - abono;
+              }
             };
           },
         };
@@ -548,11 +581,7 @@
               <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               {{ isLoading ? 'Cargando...' : 'Buscar Cuotas' }}
             </button>
-            <button class="btn btn-danger btn-sm" @click="eliminarCuotas"
-              :disabled="isLoading || !filtroRutCuota || !filtroPatenteCuota || nivel !== 'ADMIN'">
-              <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              {{ isLoading ? 'Eliminando...' : 'Eliminar Cuotas' }}
-            </button>
+
 
           </div>
         </div>
@@ -604,6 +633,10 @@
                 </label>
               </div>
             </div>
+            <button class="btn btn-danger btn-sm me-2" @click="eliminarSeleccionadas"
+              :disabled="isLoading || nivel !== 'ADMIN' || cuotasSeleccionadas.length === 0">
+              Eliminar Seleccionadas ({{ cuotasSeleccionadas.length }})
+            </button>
             <button class="btn btn-secondary btn-sm" @click="volverALista">
               <i class="fas fa-arrow-left"></i> Volver a la Lista
             </button>
@@ -613,6 +646,7 @@
             <table class="table table-striped table-hover custom-table">
               <thead class="sticky-header">
                 <tr>
+                  <th style="text-align: center" v-if="!mostrarHistorico">Sel.</th>
                   <th style="text-align: center"># Cuota</th>
                   <th style="text-align: center">Fecha Vencimiento</th>
                   <th style="text-align: center">Capital</th>
@@ -631,13 +665,21 @@
               </thead>
               <tbody>
                 <tr v-for="cuota in cuotasDeClienteSeleccionado" :key="cuota.id" style="cursor: pointer;">
+                  <td style="text-align: center; vertical-align: middle;" v-if="!mostrarHistorico">
+                    <div class="d-flex justify-content-center align-items-center"
+                      style="height: 100%; min-height: 40px;">
+                      <input type="checkbox" :value="cuota.id" v-model="cuotasSeleccionadas"
+                        :disabled="nivel !== 'ADMIN'" class="form-check-input checkbox-large"
+                        style="margin: 0 !important;" @click.stop />
+                    </div>
+                  </td>
                   <td style="text-align: center">{{ cuota.numero_cuota }}</td>
                   <td style="text-align: center">{{ formatearFecha(cuota.fecha_vencimiento) }}</td>
                   <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_a_financiar_calculado, 2) }}</td>
                   <td style="text-align: center">{{ cuota.interes_mensual }}</td>
                   <td style="text-align: center">{{ formatearMilesConPunto(cuota.interes_calculado, 2) }}</td>
-                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital, 2) }}</td>
-                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.pago_capital + cuota.interes_calculado,
+                  <td style="text-align: center">{{ formatearMilesConPunto(calcularPagoCapital(cuota), 2) }}</td>
+                  <td style="text-align: center">{{ formatearMilesConPunto(calcularTotalPago(cuota),
                     2) }}</td>
 
                   <td style="text-align: center">
@@ -652,7 +694,7 @@
                       style="width: 120px; text-align: center; margin: 0 auto;" />
                   </td>
                   <td style="text-align: center">{{ formatearMilesConPunto(cuota.abono_total) }} </td>
-                  <td style="text-align: center">{{ formatearMilesConPunto(cuota.monto_cuota - cuota.abono_total) }}
+                  <td style="text-align: center">{{ formatearMilesConPunto(calcularSaldo(cuota)) }}
                   </td>
                   <td style="text-align: center">
 
@@ -671,12 +713,9 @@
                     <button class="btn btn-info btn-sm me-1" @click.stop="abrirModalGrabar(cuota)">
                       Abonar
                     </button>
+                    &nbsp;
                     <button class="btn btn-secondary btn-sm me-1" @click.stop="abrirModalEdicion(cuota)">
                       Abonos
-                    </button>
-                    <button class="btn btn-danger btn-sm" @click.stop="eliminarUnaCuota(cuota.id)"
-                      :disabled="nivel !== 'ADMIN'">
-                      Eliminar
                     </button>
                   </td>
                 </tr>

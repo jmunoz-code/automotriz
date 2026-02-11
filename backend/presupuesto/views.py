@@ -276,4 +276,3 @@ class PresupuestoEstadoByRutPatenteAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Ocurrió un error inesperado al actualizar el estado: {e}"},
                             status=HTTPStatus.INTERNAL_SERVER_ERROR)
-# ----------------------------------------------------------------------

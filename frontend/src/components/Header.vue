@@ -89,13 +89,14 @@ watch(route, () => {
 
                                 <li><router-link to="/Contratos">Contratos</router-link></li>
                                 <li><router-link to="/ListaCuotas">Pagos</router-link></li>
+                                <li><router-link to="/CuotasImpagas">Informe Cuotas</router-link></li>
 
                                 <li @mouseenter="mostrarInformesSubmenu = true"
                                     @mouseleave="mostrarInformesSubmenu = false"
                                     v-if="usuario === 'JMUNOZ' || usuario === 'VVERGARA'">
                                     <a href="javascript:void(0)">Informes <i class="fa fa-angle-down"></i></a>
                                     <ul class="dropdown" v-show="mostrarInformesSubmenu">
-                                        <li><router-link to="/CuotasImpagas">Informe Cuotas</router-link></li>
+
                                         <li><router-link to="/Informes">Informe Ventas</router-link></li>
                                         <li><router-link to="/InformePagos1">Informe Créditos</router-link></li>
                                         <li><router-link to="/resumen">Informe Resumen</router-link></li>
