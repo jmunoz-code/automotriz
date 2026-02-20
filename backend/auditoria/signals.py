@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.forms.models import model_to_dict
 from .models import Auditoria
 from .utils import registrar_auditoria
-from backend.middleware import get_current_user, get_current_page
+from backend.middleware import get_current_user
 import json
 import threading
 
@@ -43,7 +43,6 @@ def audit_post_save(sender, instance, created, **kwargs):
 
     try:
         usuario = get_current_user()
-        pagina_origen = get_current_page()
         tabla = get_model_name(instance)
         
         try:
@@ -59,7 +58,6 @@ def audit_post_save(sender, instance, created, **kwargs):
             
             registrar_auditoria(
                 usuario=usuario,
-                pagina=pagina_origen,
                 accion=accion,
                 modulo_tabla=tabla,
                 descripcion=descripcion,
@@ -92,7 +90,6 @@ def audit_post_save(sender, instance, created, **kwargs):
                 
                 registrar_auditoria(
                     usuario=usuario,
-                    pagina=pagina_origen,
                     accion=accion,
                     modulo_tabla=tabla,
                     descripcion=descripcion,
@@ -110,7 +107,6 @@ def audit_post_delete(sender, instance, **kwargs):
 
     try:
         usuario = get_current_user()
-        pagina_origen = get_current_page()
         tabla = get_model_name(instance)
         
         try:
@@ -125,7 +121,6 @@ def audit_post_delete(sender, instance, **kwargs):
 
         registrar_auditoria(
             usuario=usuario,
-            pagina=pagina_origen,
             accion=accion,
             modulo_tabla=tabla,
             descripcion=descripcion,

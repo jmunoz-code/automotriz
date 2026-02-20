@@ -14,8 +14,8 @@ from pagoCuotas.models import PagoCuotas
 
 class Clase1(APIView):
     def get(self, request):
-        # Excluir contratos descartados (estado=1)
-        data = Presupuesto.objects.filter(estado=0).order_by('-fecha_creacion').all()
+        # INCLUIR TODOS los contratos (activos=0 y descartados=1) para que el frontend pueda filtrar
+        data = Presupuesto.objects.order_by('-fecha_creacion').all()
         datos_json = PresupuestoSerializer(data, many=True)
         return JsonResponse({"data": datos_json.data}, status=HTTPStatus.OK)
 

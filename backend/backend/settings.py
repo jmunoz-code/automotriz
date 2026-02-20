@@ -90,13 +90,14 @@ MIDDLEWARE = [
 CORS_ORIGIN_ALLOW_ALL = False 
 
 # Permite que el frontend envíe cookies (como la de sesión de Django)
-CORS_ALLOW_CREDENTIALS = False 
+CORS_ALLOW_CREDENTIALS = True 
 
 # Lista de orígenes (tu frontend) que tienen permiso para conectarse
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",    
     "http://127.0.0.1:5173",    
-    "http://10.10.11.41:5173"
+    "http://10.10.11.41:5173",
+    "https://nicolasautomotriz.cl"
 ]
 
 # Headers permitidos

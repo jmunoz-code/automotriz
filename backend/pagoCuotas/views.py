@@ -216,35 +216,10 @@ class PagoCuotasAPIView(APIView):
         except Cuota.DoesNotExist:
             return Response({"message": "Cuota no encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Capturar valor anterior para auditoría (ej: monto, fecha, observación)
-        valor_anterior = f"Monto: {cuota.monto_cuota}, Obs: {cuota.observacion}"
-
         serializer = PagoCuotasSerializer(cuota, data=request.data, partial=True)
 
         if serializer.is_valid():
-            cuota_actualizada = serializer.save()
-            
-            # Registrar auditoría
-            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-            ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
-            
-            # Determinar qué cambió
-            valor_nuevo = f"Monto: {cuota_actualizada.monto_cuota}, Obs: {cuota_actualizada.observacion}"
-            
-            # Obtener usuario desde el middleware (capturado del header X-Usuario-Sesion)
-            usuario = getattr(request, 'usuario_sesion', None) or 'Sistema'
-            
-            registrar_auditoria(
-                usuario=usuario,
-                pagina='ListaCuotas',
-                accion='MODIFICAR',
-                modulo_tabla='PagoCuotas',
-                descripcion=f'Modificación de cuota {pk} del cliente {cuota.rut_cliente}',
-                valor_anterior=valor_anterior,
-                valor_nuevo=valor_nuevo,
-                ip_usuario=ip
-            )
-            
+            serializer.save()
             return Response({'message': 'Cuota actualizada exitosamente', 'data': serializer.data}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

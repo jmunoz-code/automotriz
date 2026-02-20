@@ -12,7 +12,6 @@ class AuditoriaSerializer(serializers.ModelSerializer):
             'fecha_hora',
             'fecha_hora_formateada',
             'usuario',
-            'pagina',
             'accion',
             'modulo_tabla',
             'descripcion',

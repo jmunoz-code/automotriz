@@ -10,7 +10,6 @@ class Auditoria(models.Model):
     
     fecha_hora = models.DateTimeField(default=timezone.now, db_index=True)
     usuario = models.CharField(max_length=100, db_index=True)
-    pagina = models.CharField(max_length=200, help_text='Página desde donde se realizó el cambio')
     accion = models.CharField(max_length=20, choices=ACCION_CHOICES, db_index=True)
     modulo_tabla = models.CharField(max_length=100, db_index=True, help_text='Módulo o tabla afectada')
     descripcion = models.TextField()

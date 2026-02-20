@@ -73,8 +73,8 @@ export default {
     const filtroRutCliente = ref('');
     const pasa_valor = ref(0);
 
-    // NUEVA VARIABLE PARA FILTRAR CONTRATOS
     const filtroContratos = ref(''); //
+    const mostrarHistorico = ref(false); // Toggle para ver históricos
 
     // Nivel del usuario desde localStorage
     const nivel = ref(localStorage.getItem('user_nivel'));
@@ -648,20 +648,33 @@ export default {
     });
 
     // PROPIEDAD COMPUTADA PARA FILTRAR CONTRATOS
-    const contratosFiltrados = computed(() => { //
-      if (!filtroContratos.value) { //
-        return datos.value; //
+    const contratosFiltrados = computed(() => {
+      let lista = datos.value;
+
+      // 1. Filtrar por Estado (Histórico vs Activo)
+      if (mostrarHistorico.value) {
+        // Si está activado histórico, mostrar SOLO los estado = 1
+        lista = lista.filter(contrato => Number(contrato.estado) === 1);
+      } else {
+        // Por defecto, mostrar SOLO los activos (estado != 1)
+        lista = lista.filter(contrato => Number(contrato.estado) !== 1);
       }
-      const filtro = filtroContratos.value.toLowerCase(); //
-      return datos.value.filter(contrato => //
-        (contrato.patente_vehiculo && contrato.patente_vehiculo.toLowerCase().includes(filtro)) || //
-        (contrato.rut_cliente && contrato.rut_cliente.toLowerCase().includes(filtro)) || //
-        (contrato.modelo_vehiculo && contrato.modelo_vehiculo.toLowerCase().includes(filtro)) || //
-        (contrato.tipo_pago !== undefined && (contrato.tipo_pago === 0 ? 'contado' : 'crédito').toLowerCase().includes(filtro)) || //
-        (String(contrato.precio_venta).includes(filtro)) || //
-        (String(contrato.valor_pie).includes(filtro)) || //
-        (String(contrato.numero_cuotas).includes(filtro)) || //
-        (String(contrato.valor_cuota).includes(filtro)) //
+
+      // 2. Filtrar por Texto de Búsqueda
+      if (!filtroContratos.value) {
+        return lista;
+      }
+
+      const filtro = filtroContratos.value.toLowerCase();
+      return lista.filter(contrato =>
+        (contrato.patente_vehiculo && contrato.patente_vehiculo.toLowerCase().includes(filtro)) ||
+        (contrato.rut_cliente && contrato.rut_cliente.toLowerCase().includes(filtro)) ||
+        (contrato.modelo_vehiculo && contrato.modelo_vehiculo.toLowerCase().includes(filtro)) ||
+        (contrato.tipo_pago !== undefined && (contrato.tipo_pago === 0 ? 'contado' : 'crédito').toLowerCase().includes(filtro)) ||
+        (String(contrato.precio_venta).includes(filtro)) ||
+        (String(contrato.valor_pie).includes(filtro)) ||
+        (String(contrato.numero_cuotas).includes(filtro)) ||
+        (String(contrato.valor_cuota).includes(filtro))
       );
     });
 
@@ -949,7 +962,7 @@ export default {
           return;
         }
 
-        if (!formData.value.habilitado_compra) {
+        if (!formData.value.habilitado_venta) {
           mostrarMensaje('El vehículo no está habilitado para crear contratos.', 'error');
           return;
         }
@@ -960,7 +973,7 @@ export default {
           contrato => contrato.rut_cliente === formData.value.rut &&
             contrato.patente_vehiculo === formData.value.patente
         );
-
+  
         if (contratoExistente) {
           mostrarMensaje(`Ya existe un contrato para el RUT ${formData.value.rut} con la patente ${formData.value.patente}. No se pueden crear contratos duplicados.`, 'error');
           return;
@@ -1220,16 +1233,15 @@ export default {
 
           console.log('Total contratos recibidos:', data.data.length);
 
-          // Convertir el estado de BD (0/1) a booleano para el checkbox (true/false)
-          // BD: 0 = habilitado -> Checkbox: true
-          // BD: 1 = deshabilitado -> Checkbox: false
-          // FILTRAR: Solo mostrar contratos habilitados (estado = 0), excluir descartados (estado = 1)
-          datos.value = data.data
-            .filter(contrato => contrato.estado !== 1) // Excluir contratos descartados
-            .map(contrato => ({
-              ...contrato,
-              estado: contrato.estado === 0 // Si estado es 0, checkbox true (habilitado)
-            }));
+          // Cargar TODOS los contratos sin filtrar por estado aquí
+          // El filtrado se hace en contratosFiltrados
+          datos.value = data.data.map(contrato => ({
+            ...contrato,
+            // Aseguramos que el estado se maneje consistentemente como 0 o 1
+            // Si es 1, "1", o true, lo forzamos a 1 (Histórico/Descartado)
+            // Cualquier otro valor (0, null, undefined, false) será 0 (Activo)
+            estado: (contrato.estado == 1 || contrato.estado === '1' || contrato.estado === true) ? 1 : 0
+          }));
 
         } else {
           console.error('Error loading contract list:', response.statusText);
@@ -1369,8 +1381,9 @@ export default {
       calculo,
       // Retorna también la función handleBlur si la quieres usar en el template
       handleBlur,
-      filtroContratos, //
-      contratosFiltrados, //
+      filtroContratos,
+      mostrarHistorico,
+      contratosFiltrados,
       actualizarEstadoContrato,
       manejarCambioEstadoContrato,
       mostrarModalDeshabilitar,
@@ -1709,9 +1722,14 @@ export default {
 
         <h3 class="mt-4" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Lista de Contratos
         </h3>
-        <div class="mb-3">
+        <div class="mb-3 d-flex gap-2">
           <input type="text" class="form-control form-control-sm" v-model="filtroContratos"
             placeholder="Filtrar contratos por patente, RUT, cliente, tipo de pago, etc..." />
+
+          <button type="button" class="btn btn-sm" :class="mostrarHistorico ? 'btn-warning' : 'btn-outline-secondary'"
+            @click="mostrarHistorico = !mostrarHistorico">
+            {{ mostrarHistorico ? 'Ocultar Histórico' : 'Ver Histórico' }}
+          </button>
         </div>
         <div class="table-responsive-xl">
           <table class="table table-striped custom-table">

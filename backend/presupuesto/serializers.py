@@ -41,7 +41,7 @@ class PresupuestoSerializer(serializers.ModelSerializer):
             'sumatoria_gastos',
             'utilidad',
             'apellidos',
-            
+            'estado',
         ]
 
     def get_modelo_vehiculo(self, obj):

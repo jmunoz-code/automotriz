@@ -11,6 +11,7 @@ class Vendedores(models.Model):
     clave = models.CharField(max_length=120, null= True)
     comision = models.FloatField(null=True)
     nivel = models.CharField(max_length=15, null=True)
+    activo = models.IntegerField(default=0, null=True)
 
     #clase helper
     # cuando llamo modelo campo muetsre por defecto

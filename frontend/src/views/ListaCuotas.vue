@@ -648,7 +648,7 @@
         Listado y Búsqueda de Cuotas
       </div>
       <div class="card-body">
-        <div class="row mb-4">
+        <div class="row mb-4" v-if="!clienteSeleccionado">
           <div class="col-md-4">
             <label for="filtroRutCuota" class="form-label negrita">Filtrar/Eliminar por RUT Cliente:</label>
             <input type="text" class="form-control form-control-sm" id="filtroRutCuota" v-model.lazy="filtroRutCuota"
@@ -724,7 +724,7 @@
               </div>
             </div>
             <button class="btn btn-danger btn-sm me-2" @click="eliminarSeleccionadas"
-              :disabled="isLoading || nivel !== 'ADMIN' || cuotasSeleccionadas.length === 0">
+              :disabled="isLoading || cuotasSeleccionadas.length === 0">
               Eliminar Seleccionadas ({{ cuotasSeleccionadas.length }})
             </button>
             <button class="btn btn-secondary btn-sm" @click="volverALista">
@@ -759,7 +759,7 @@
                     <div class="d-flex justify-content-center align-items-center"
                       style="height: 100%; min-height: 40px;">
                       <input type="checkbox" :value="cuota.id" v-model="cuotasSeleccionadas"
-                        :disabled="nivel !== 'ADMIN'" class="form-check-input checkbox-large"
+                       class="form-check-input checkbox-large"
                         style="margin: 0 !important;" @click.stop />
                     </div>
                   </td>

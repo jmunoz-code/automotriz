@@ -1,7 +1,7 @@
 <script>
 import Header from '@/components/HeaderAdmin.vue';
 import Footer from '@/components/Footer.vue';
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';

@@ -155,7 +155,6 @@ export default {
                                 <th style="width: 40px;">ID</th>
                                 <th style="width: 115px;">Fecha/Hora</th>
                                 <th style="width: 90px;">Usuario</th>
-                                <th style="width: 115px;">Página</th>
                                 <th style="width: 75px;">Acción</th>
                                 <th style="width: 90px;">Módulo/Tabla</th>
                                 <th style="width: 115px;">Descripción</th>
@@ -165,21 +164,20 @@ export default {
                         </thead>
                         <tbody>
                             <tr v-if="isLoading">
-                                <td colspan="9" class="text-center p-4">
+                                <td colspan="8" class="text-center p-4">
                                     <div class="spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Cargando...</span>
                                     </div>
                                 </td>
                             </tr>
                             <tr v-if="!isLoading && registros.length === 0">
-                                <td colspan="9" class="text-center p-4">No se encontraron registros de auditoría.</td>
+                                <td colspan="8" class="text-center p-4">No se encontraron registros de auditoría.</td>
                             </tr>
                             <tr v-for="log in registrosPaginados" :key="log.id">
                                 <td class="text-center text-truncate">{{ log.id }}</td>
                                 <td class="text-truncate" :title="log.fecha_hora_formateada">{{
                                     log.fecha_hora_formateada }}</td>
                                 <td class="fw-bold text-truncate" :title="log.usuario">{{ log.usuario }}</td>
-                                <td class="text-truncate" :title="log.pagina">{{ log.pagina }}</td>
                                 <td class="text-center">
                                     <span :class="{
                                         'badge bg-success': log.accion === 'CREAR',

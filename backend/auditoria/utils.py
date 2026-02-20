@@ -1,7 +1,7 @@
 from .models import Auditoria
 import traceback
 
-def registrar_auditoria(usuario, pagina, accion, modulo_tabla, descripcion, valor_anterior=None, valor_nuevo=None, ip_usuario=None):
+def registrar_auditoria(usuario, accion, modulo_tabla, descripcion, valor_anterior=None, valor_nuevo=None, ip_usuario=None):
     """
     Función helper para registrar eventos de auditoría desde cualquier parte del sistema.
     
@@ -10,7 +10,6 @@ def registrar_auditoria(usuario, pagina, accion, modulo_tabla, descripcion, valo
     
     registrar_auditoria(
         usuario=request.user.username,
-        pagina='NombreVista',
         accion='MODIFICAR',
         modulo_tabla='Contratos',
         descripcion='Se modificó el contrato X',
@@ -20,7 +19,6 @@ def registrar_auditoria(usuario, pagina, accion, modulo_tabla, descripcion, valo
     try:
         Auditoria.objects.create(
             usuario=str(usuario), # Asegurar string
-            pagina=pagina,
             accion=accion,
             modulo_tabla=modulo_tabla,
             descripcion=descripcion,

@@ -24,7 +24,7 @@ class Clase1(APIView):
         """
         Obtiene todos los vendedores ordenados por ID de forma descendente.
         """
-        data = Vendedores.objects.order_by('-id').all()
+        data = Vendedores.objects.filter(activo=1).order_by('-id')
         serializer = VendedoresSerializer(data, many=True)
         return Response({"data": serializer.data}, status=status.HTTP_200_OK)
 
@@ -63,6 +63,14 @@ class Clase1(APIView):
 # ---
 ## Clase2: Gestión de Vendedores (GET by RUT, DELETE, PUT)
 # ---
+def _get_vendedor_by(field, value):
+    try:
+        if field == 'usuario':
+            value = value.upper()
+        return Vendedores.objects.get(**{field: value})
+    except ObjectDoesNotExist:
+        raise NotFound("Vendedor no encontrado.")
+
 @method_decorator(csrf_exempt, name='dispatch')
 class Clase2(APIView):
 
@@ -70,42 +78,17 @@ class Clase2(APIView):
         """
         Obtiene un vendedor específico por su RUT.
         """
-        try:
-            vendedor = Vendedores.objects.get(rut=rut)
-            serializer = VendedoresSerializer(vendedor)
-            return Response({"data": serializer.data}, status=status.HTTP_200_OK)
-
-        except ObjectDoesNotExist:
-            return Response(
-                {"error": "Vendedor no encontrado."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            print(f"Error inesperado en la vista GET de Vendedores: {e}")
-            return Response(
-                {"error": "Ocurrió un error inesperado."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        vendedor = _get_vendedor_by('rut', rut)
+        serializer = VendedoresSerializer(vendedor)
+        return Response({"data": serializer.data}, status=status.HTTP_200_OK)
 
     def delete(self, request, rut):
         """
         Elimina un vendedor específico por su RUT.
         """
-        try:
-            vendedor = Vendedores.objects.get(rut=rut)
-            vendedor.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except ObjectDoesNotExist:
-            return Response(
-                {"error": f"No se encontró ningún cliente con el RUT: {rut}"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            print(f"Error inesperado al eliminar vendedor: {e}")
-            return Response(
-                {"error": f"Ocurrió un error inesperado al eliminar: {e}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        vendedor = _get_vendedor_by('rut', rut)
+        vendedor.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def put(self, request, rut):
         """
@@ -113,6 +96,7 @@ class Clase2(APIView):
         Normaliza campos como nombres, apellidos y usuario a mayúsculas.
         El hashing de la clave ahora se maneja en el serializador.
         """
+        vendedor = _get_vendedor_by('rut', rut)
         modified_data = request.data.copy()
 
         if 'nombres' in modified_data and modified_data['nombres']:
@@ -124,21 +108,14 @@ class Clase2(APIView):
         if 'usuario' in modified_data and modified_data['usuario']:
             modified_data['usuario'] = modified_data['usuario'].upper()
 
+        serializer = VendedoresSerializer(vendedor, data=modified_data, partial=True)
+
         try:
-            vendedor_existente = Vendedores.objects.get(rut=rut)
-            serializer = VendedoresSerializer(vendedor_existente, data=modified_data, partial=True)
-
-            if serializer.is_valid(raise_exception=True):
-                serializer.save()
-                return Response(
-                    {"data": serializer.data, "message": "Vendedor modificado exitosamente"},
-                    status=status.HTTP_200_OK
-                )
-
-        except ObjectDoesNotExist:
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
             return Response(
-                {"error": "Vendedor no encontrado."},
-                status=status.HTTP_404_NOT_FOUND
+                {"data": serializer.data, "message": "Vendedor modificado exitosamente"},
+                status=status.HTTP_200_OK
             )
         except ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
@@ -173,7 +150,7 @@ class LoginVendedores(APIView):
 
         try:
             # Buscar el vendedor por el usuario (normalizado a mayúsculas)
-            vendedor = Vendedores.objects.get(usuario=usuario_ingresado.upper())
+            vendedor = _get_vendedor_by('usuario', usuario_ingresado)
 
             # Verificar la clave hasheada
             if check_password(clave_ingresada, vendedor.clave):
@@ -190,7 +167,7 @@ class LoginVendedores(APIView):
                     {"error": "Credenciales inválidas."},
                     status=status.HTTP_401_UNAUTHORIZED # 401 para credenciales no autorizadas
                 )
-        except ObjectDoesNotExist:
+        except NotFound:
             # Usuario no encontrado
             return Response(
                 {"error": "Credenciales inválidas."},
@@ -237,7 +214,7 @@ class TempAdminView(APIView):
             return Response({"error": "Se requiere el ID del vendedor."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            vendedor = Vendedores.objects.get(id=vendedor_id)
+            vendedor = _get_vendedor_by('id', vendedor_id)
             previous_role = vendedor.nivel
             
             # Si ya es Admin, no hacemos nada o reiniciamos el timer?
@@ -246,16 +223,16 @@ class TempAdminView(APIView):
             vendedor.nivel = 'ADMIN' 
             vendedor.save()
             
-            # Iniciar timer de 2 minutos (120 segundos)
-            timer = threading.Timer(120, revert_admin_role, args=[vendedor.id, previous_role])
+            # Iniciar timer de 5 minutos (300 segundos)
+            timer = threading.Timer(300, revert_admin_role, args=[vendedor.id, previous_role])
             timer.start()
             
             return Response({
-                "message": f"Vendedor {vendedor.nombres} ahora es ADMIN por 2 minutos.",
+                "message": f"Vendedor {vendedor.nombres} ahora es ADMIN por 5 minutos.",
                 "previous_role": previous_role
             }, status=status.HTTP_200_OK)
 
-        except Vendedores.DoesNotExist:
+        except NotFound:
             return Response({"error": "Vendedor no encontrado."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             print(f"Error en TempAdminView: {e}")

@@ -78,7 +78,7 @@ onMounted(() => {
                     </div>
                     <div class="card-body p-5">
                         <p class="text-muted text-center mb-4">
-                            Seleccione un usuario para otorgarle privilegios de administrador por <strong>2
+                            Seleccione un usuario para otorgarle privilegios de administrador por <strong>5
                                 minutos</strong>.
                         </p>
 
