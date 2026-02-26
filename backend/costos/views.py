@@ -16,7 +16,7 @@ class Clase1(APIView):
         """
         Obtiene una lista de todos los costos existentes, ordenados por ID de forma descendente.
         """
-        data = Costos.objects.order_by('-patente').all()
+        data = Costos.objects.order_by('-fecha', '-id').all()
         datos_json = CostosSerializer(data, many=True)
         return JsonResponse({"data":datos_json.data},status= HTTPStatus.OK)
    
@@ -105,6 +105,6 @@ class Clase4(APIView):
     
     def get(self, request, patente):
 
-        data = Costos.objects.filter(patente=patente) 
+        data = Costos.objects.filter(patente=patente).order_by('-fecha', '-id')
         datos_json = CostosSerializer(data, many=True)
         return JsonResponse({"data":datos_json.data},status= HTTPStatus.OK)

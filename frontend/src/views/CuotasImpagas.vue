@@ -100,7 +100,7 @@ export default {
         // 1. Sumamos al monto total solo si la cuota está ATRASADA (dias_atraso > 0)
         // Convertimos explicitamente dias_atraso a número para evitar errores con strings
         const diasAtraso = parseInt(cuota.dias_atraso || 0);
-        if (diasAtraso > 10) {
+        if (diasAtraso > 0) {
           // ✅ AJUSTE FINAL: Usar cuota.monto_cuota para el monto total agrupado (como se solicitó).
           grupo.monto_total_impago += parseFloat(cuota.monto_cuota || 0);
           grupo.tiene_cuotas_atrasadas = true;
@@ -152,7 +152,7 @@ export default {
     // --- FUNCIÓN CLAVE: Manejar clic en la fila (Sin Cambios) ---
     const mostrarDetalles = (grupo) => {
       // Aplicamos el filtro para mostrar solo cuotas con días de atraso > 0
-      const cuotasAtrasadas = grupo.cuotas_detalles.filter(detalle => detalle.dias_atraso > 10);
+      const cuotasAtrasadas = grupo.cuotas_detalles.filter(detalle => detalle.dias_atraso > 0);
 
       detallesCuotas.value = cuotasAtrasadas;
       rutSeleccionado.value = grupo.rut_cliente;
@@ -188,6 +188,16 @@ export default {
       return listaCuotasAgrupadas.value.reduce((acc, grupo) => acc + (grupo.monto_total_impago || 0), 0);
     });
 
+    const totalImpagoReal10Dias = computed(() => {
+      let suma = 0;
+      listaCuotas.value.forEach(cuota => {
+        if (parseInt(cuota.dias_atraso || 0) >= 10) {
+          suma += parseFloat(cuota.monto_cuota || 0);
+        }
+      });
+      return suma;
+    });
+
     // --- NUEVO: Lógica para obtener el Porcentaje respecto al Saldo Total Pendiente ---
     const totalDeudaGeneral = ref(0);
 
@@ -219,7 +229,7 @@ export default {
 
     const porcentajeImpago = computed(() => {
       if (!totalDeudaGeneral.value || totalDeudaGeneral.value === 0) return 0;
-      return ((totalGeneralImpago.value / totalDeudaGeneral.value) * 100).toFixed(2);
+      return ((totalImpagoReal10Dias.value / totalDeudaGeneral.value) * 100).toFixed(2);
     });
 
     const imprimirReporte = () => {

@@ -5,6 +5,8 @@ from django.db import models
 class Costos(models.Model):
     # solo le agrega el id
     patente = models.CharField(max_length=10, null=False)
+    fecha = models.DateField(null=True, blank=True)
+    numero_boleta = models.CharField(max_length=50, null=True, blank=True)
     tipo_costo = models.CharField(max_length=30, null=False)
     descripcion = models.CharField(max_length=100, null=False)
     valor = models.IntegerField(null=False)

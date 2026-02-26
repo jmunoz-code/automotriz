@@ -25,6 +25,8 @@ export default {
   setup() {
     const formData = ref({
       patente: '',
+      fecha: '',
+      numero_boleta: '',
       tipo_costo: '',
       descripcion: '',
       valor: '',
@@ -102,6 +104,8 @@ export default {
 
     const limpiarFormulario = () => {
       formData.value.patente = '';
+      formData.value.fecha = '';
+      formData.value.numero_boleta = '';
       formData.value.tipo_costo = '';
       formData.value.descripcion = '';
       formData.value.valor = '';
@@ -115,6 +119,8 @@ export default {
         const costoData = await obtenerCostoPorPatente(patenteABuscar);
         if (costoData) {
           formData.value.patente = costoData.patente;
+          formData.value.fecha = costoData.fecha || '';
+          formData.value.numero_boleta = costoData.numero_boleta || '';
           formData.value.tipo_costo = costoData.tipo_costo;
           formData.value.descripcion = costoData.descripcion;
           formData.value.valor = costoData.valor;
@@ -142,7 +148,7 @@ export default {
         if (response.ok) {
           const data = await response.json();
           mostrarMensaje('Costo creado exitosamente!', 'success');
-          formData.value = { patente: '', tipo_costo: '', descripcion: '', valor: '' };
+          formData.value = { patente: '', fecha: '', numero_boleta: '', tipo_costo: '', descripcion: '', valor: '' };
           cargarListaDeCostos(); // Recargar la lista después de crear
         } else {
           const errorData = await response.json();
@@ -249,7 +255,6 @@ export default {
       }
     };
 
-    // NUEVA FUNCIÓN: Calcula el total de gastos de una lista de costos
     const calcularTotalGastos = (listaDeCostos) => {
       // Usamos el método `reduce` para sumar el valor de todos los costos
       const total = listaDeCostos.reduce((acumulador, costo) => {
@@ -259,6 +264,13 @@ export default {
       return total;
     };
 
+    const formatearFecha = (fechaOriginal) => {
+      if (!fechaOriginal) return '';
+      const partes = fechaOriginal.split('-');
+      if (partes.length !== 3) return fechaOriginal;
+      // Asumiendo que el backend devuelve yyyy-mm-dd
+      return `${partes[2]}-${partes[1]}-${partes[0]}`;
+    };
 
     // Cargar la lista de costos al montar el componente
     cargarListaDeCostos();
@@ -283,6 +295,7 @@ export default {
       buscarCostos,
       totalGastosPatente, // Exportamos la nueva variable para que esté disponible en la plantilla
       nivel,
+      formatearFecha,
     };
   },
 };
@@ -291,7 +304,7 @@ export default {
 <template>
   <Header></Header>
 
-  <div class="container mt-3">
+  <div class="container-fluid mt-3" style="max-width: 90%;">
     <div class="card shadow-sm mt-3 mb-3">
       <div class="card-header" style="font-weight: bolder; font-size: medium; color: rgb(56, 149, 73);">Mantención
         Costos
@@ -300,12 +313,22 @@ export default {
 
         <form @submit.prevent="handleSubmit">
           <div class="mb-3 row align-items-center">
-            <label for="patente" class="col-md-2 col-form-label negrita">Patente</label>
-            <div class="col-md-3">
+            <label for="patente" class="col-auto col-form-label negrita">Patente</label>
+            <div class="col-md-2">
               <input type="text" class="form-control form-control-sm negrita" id="patente" v-model="formData.patente"
                 required />
             </div>
 
+            <label for="fecha" class="col-auto col-form-label negrita text-end">Fecha</label>
+            <div class="col-md-2">
+              <input type="date" class="form-control form-control-sm negrita" id="fecha" v-model="formData.fecha" />
+            </div>
+
+            <label for="numero_boleta" class="col-auto col-form-label negrita text-end">Boleta/Fact.</label>
+            <div class="col-md-3">
+              <input type="text" class="form-control form-control-sm negrita" id="numero_boleta"
+                v-model="formData.numero_boleta" />
+            </div>
           </div>
           <div class="mb-3">
             <label for="tipo_costo" class="form-label negrita">Nombre de Costo</label>
@@ -373,6 +396,8 @@ export default {
             <tr>
 
               <th>Patente</th>
+              <th>Fecha</th>
+              <th>N° Boleta</th>
               <th>Nombre de Costo</th>
               <th>Detalle de Costo</th>
               <th>Valor</th>
@@ -383,6 +408,8 @@ export default {
             <tr v-for="costo in datos" :key="costo.id">
 
               <td>{{ costo.patente }}</td>
+              <td>{{ formatearFecha(costo.fecha) }}</td>
+              <td>{{ costo.numero_boleta }}</td>
               <td>{{ costo.tipo_costo }}</td>
               <td>{{ costo.descripcion }}</td>
               <td class="negrita" style="text-align: right;">{{ formatearMilesConPunto(costo.valor) }}</td>

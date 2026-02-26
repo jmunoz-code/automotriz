@@ -400,13 +400,14 @@
 
                 const grupo = grupos.get(key);
 
-                // Verificación de cuotas pendientes (con saldo > 0)
-                // Incluye tanto cuotas vencidas como no vencidas pero con pago pendiente
+                // Verificación de cuotas pendientes (con saldo > 0 y mora >= 1 día)
                 const monto = parseFloat(cuota.monto_cuota) || 0;
                 const abono = parseFloat(cuota.abono_total) || 0;
                 const saldo = monto - abono;
+                const dias_atraso = parseInt(cuota.dias_atraso) || 0;
 
-                if (saldo > 0) {
+                // Solo si el saldo > 0 y tiene al menos 1 día de mora
+                if (saldo > 0 && dias_atraso >= 1) {
                   grupo.tiene_deuda = true;
                 }
               });
@@ -759,8 +760,7 @@
                     <div class="d-flex justify-content-center align-items-center"
                       style="height: 100%; min-height: 40px;">
                       <input type="checkbox" :value="cuota.id" v-model="cuotasSeleccionadas"
-                       class="form-check-input checkbox-large"
-                        style="margin: 0 !important;" @click.stop />
+                        class="form-check-input checkbox-large" style="margin: 0 !important;" @click.stop />
                     </div>
                   </td>
                   <td style="text-align: center">{{ cuota.numero_cuota }}</td>

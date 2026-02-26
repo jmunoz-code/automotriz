@@ -65,7 +65,7 @@ export default {
 
                     let suma = 0;
                     data.forEach(cuota => {
-                        if (cuota.dias_atraso > 10) {
+                        if (cuota.dias_atraso >= 10) {
                             suma += parseFloat(cuota.monto_cuota || 0);
                         }
                     });
@@ -346,7 +346,7 @@ export default {
                                             <p class="mb-1 negrita">Capital Teórico **Pendiente**:</p>
                                             <h5>$ {{
                                                 formatearMilesConPunto(totalesGeneralesPendientes.totalCapitalAmortizado)
-                                            }}</h5>
+                                                }}</h5>
                                         </div>
                                         <div class="col-md-3">
                                             <p class="mb-1 negrita">Monto Total Cuota **Teórica Pendiente**:</p>
