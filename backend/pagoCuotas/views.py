@@ -116,7 +116,8 @@ class PagoCuotasAPIView(APIView):
             presupuestos_validos = Presupuesto.objects.filter(
                 rut_cliente=OuterRef('rut_cliente'),
                 patente_vehiculo=OuterRef('patente'), 
-                estado=estado_filtro
+                estado=estado_filtro,
+                pausa=0  # Excluir contratos pausados
             )
 
             # Filtrar cuotas base usando Exists
@@ -273,7 +274,8 @@ class CuotasImpagasAPIView(APIView):
             presupuestos_activos = Presupuesto.objects.filter(
                 rut_cliente=OuterRef('rut_cliente'),
                 patente_vehiculo=OuterRef('patente'),
-                estado=0  # Solo activos
+                estado=0,   # Solo activos
+                pausa=0     # Excluir contratos pausados
             )
             
             # Filtrar cuotas vencidas con Exists

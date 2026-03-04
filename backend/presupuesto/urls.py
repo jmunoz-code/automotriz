@@ -6,6 +6,7 @@ urlpatterns = [
     path('presupuesto/', Clase1.as_view()),
     path('presupuesto/buscar/', PresupuestoListAPIView.as_view()), 
     path('presupuesto/estado/<int:id>/', PresupuestoEstadoUpdateAPIView.as_view()), 
+    path('presupuesto/pausa/<int:id>/', PresupuestoPausaUpdateAPIView.as_view()), 
     
     # Rutas con parámetros int (más específicas que str)
     path('presupuesto/<int:id>/', Clase2.as_view()),  # GET, PUT, DELETE por ID

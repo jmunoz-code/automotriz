@@ -414,8 +414,7 @@ export default {
               <td>{{ costo.descripcion }}</td>
               <td class="negrita" style="text-align: right;">{{ formatearMilesConPunto(costo.valor) }}</td>
               <td>
-                <button @click="abrirModalEliminar(costo.id)" class="btn btn-danger btn-sm"
-                  :disabled="nivel !== 'ADMIN'">Eliminar</button>
+                <button @click="abrirModalEliminar(costo.id)" class="btn btn-danger btn-sm">Eliminar</button>
               </td>
             </tr>
           </tbody>

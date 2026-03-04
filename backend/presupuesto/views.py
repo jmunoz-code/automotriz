@@ -276,3 +276,38 @@ class PresupuestoEstadoByRutPatenteAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Ocurrió un error inesperado al actualizar el estado: {e}"},
                             status=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+
+# --- VISTA DEDICADA SOLO PARA ACTUALIZAR EL CAMPO 'PAUSA' (Usando PATCH) ---
+class PresupuestoPausaUpdateAPIView(APIView):
+    
+    def patch(self, request, id): 
+        try:
+            presupuesto = Presupuesto.objects.get(id=id)
+        except Presupuesto.DoesNotExist:
+            raise NotFound(f"No se encontro ningun Presupuesto con ID: {id}")
+        
+        nuevo_pausa_raw = request.data.get('pausa')
+
+        if nuevo_pausa_raw is None:
+            return Response({"estado": "error", "mensaje": "El campo 'pausa' (1 o 0) es requerido para esta operacion."},
+                            status=HTTPStatus.BAD_REQUEST)
+        
+        try:
+            nuevo_pausa = int(nuevo_pausa_raw)
+            if nuevo_pausa not in [0, 1]:
+                 raise ValueError
+        except ValueError:
+             return Response({"estado": "error", "mensaje": "El valor de 'pausa' debe ser 1 (Pausado) o 0 (Activo)."},
+                            status=HTTPStatus.BAD_REQUEST)
+
+        try:
+            presupuesto.pausa = nuevo_pausa
+            presupuesto.save(update_fields=['pausa'])
+            
+            return Response({"estado": "ok", 
+                             "mensaje": f"Pausa del Presupuesto {id} actualizada a '{nuevo_pausa}' exitosamente."},
+                            status=HTTPStatus.OK)
+        except Exception as e:
+            return Response({"error": f"Ocurrio un error inesperado al actualizar la pausa: {e}"},
+                            status=HTTPStatus.INTERNAL_SERVER_ERROR)

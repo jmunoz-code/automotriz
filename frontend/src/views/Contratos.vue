@@ -76,6 +76,10 @@ export default {
     const filtroContratos = ref(''); //
     const mostrarHistorico = ref(false); // Toggle para ver históricos
 
+    // PAUSA
+    const mostrarModalPausa = ref(false);
+    const contratoAPausar = ref(null);
+
     // Nivel del usuario desde localStorage
     const nivel = ref(localStorage.getItem('user_nivel'));
 
@@ -270,27 +274,24 @@ export default {
     // MODIFICAR ESTADO DE CONTRATO
 
     const manejarCambioEstadoContrato = (contrato) => {
-      // IMPORTANTE: En el backend, estado=0 es HABILITADO, estado=1 es DESHABILITADO
-      // El checkbox muestra el estado "habilitado" visualmente
-      // Si contrato.estado es false (deshabilitado visualmente), el valor en BD debe ser 1
-      // Si contrato.estado es true (habilitado visualmente), el valor en BD debe ser 0
-
-      // Si se está deshabilitando (cambiando de true/0 a false/1), mostrar modal de confirmación
-      if (!contrato.estado) {
-        // Revertir temporalmente el cambio en el checkbox
-        contrato.estado = true;
-        // Mostrar modal de confirmación
+      // estado en BD: 0=activo, 1=en historial
+      // checkbox: checked=true => quiere mandarlo al historial => mostrar modal
+      // checkbox: unchecked=false => quiere reactivarlo => proceder directamente
+      if (contrato.estado) {
+        // El usuario acaba de MARCAR el checkbox (quiere mandar al historial)
+        // Revertir temporalmente hasta que confirme en el modal
+        contrato.estado = false;
         abrirModalDeshabilitar(contrato);
       } else {
-        // Si se está habilitando (cambiando de false/1 a true/0), proceder directamente
+        // El usuario acaba de DESMARCAR (quiere reactivar el contrato)
         actualizarEstadoContrato(contrato);
       }
     };
 
     const actualizarEstadoContrato = async (contrato) => {
       const contratoId = contrato.id;
-      const nuevoHabilitado = contrato.estado;
-      const nuevoEstadoDB = nuevoHabilitado ? 0 : 1;
+      // contrato.estado: true=en historial (DB=1), false=activo (DB=0)
+      const nuevoEstadoDB = contrato.estado ? 1 : 0;
 
       if (!contratoId) {
         mostrarMensaje('Error: No se encontró el ID del contrato para actualizar.', 'error');
@@ -313,15 +314,15 @@ export default {
         });
 
         if (response.ok) {
-          mostrarMensaje(`Presupuesto #${contratoId} actualizado a Habilitado: ${nuevoHabilitado ? 'SÍ' : 'NO'}.`, 'success');
+          mostrarMensaje(`Contrato #${contratoId} ${contrato.estado ? 'enviado al historial' : 'reactivado'} correctamente.`, 'success');
         } else {
-          contrato.estado = !nuevoHabilitado;
+          contrato.estado = !contrato.estado; // revertir
           const errorData = await response.json();
           console.error('ERROR al actualizar estado:', response.status, errorData);
           mostrarMensaje('Error al guardar el cambio en el servidor. Revirtiendo estado.', 'error');
         }
       } catch (error) {
-        contrato.estado = !nuevoHabilitado;
+        contrato.estado = !contrato.estado; // revertir
         console.error('ERROR de conexión:', error);
         mostrarMensaje('Error de conexión con el servidor. No se pudo guardar.', 'error');
       } finally {
@@ -338,8 +339,8 @@ export default {
       // Guardar el ID del contrato antes de actualizarlo
       const contratoId = contratoADeshabilitar.value.id;
 
-      // Actualizar el estado del contrato a deshabilitado
-      contratoADeshabilitar.value.estado = false;
+      // Marcar como historial (true) y guardar
+      contratoADeshabilitar.value.estado = true;
       await actualizarEstadoContrato(contratoADeshabilitar.value);
 
       // IMPORTANTE: Eliminar el contrato de la lista visible inmediatamente
@@ -647,17 +648,88 @@ export default {
       );
     });
 
+    // PAUSA: abrir/cerrar modal
+    const abrirModalPausa = (contrato) => {
+      contratoAPausar.value = contrato;
+      mostrarModalPausa.value = true;
+    };
+
+    const cerrarModalPausa = () => {
+      mostrarModalPausa.value = false;
+      contratoAPausar.value = null;
+    };
+
+    const actualizarPausaContrato = async (contrato) => {
+      const contratoId = contrato.id;
+      const nuevaPausaVista = contrato.pausa; // true = pausado, false = activo
+      const nuevaPausaDB = nuevaPausaVista ? 1 : 0;
+
+      if (!contratoId) {
+        mostrarMensaje('Error: No se encontró el ID del contrato para actualizar la pausa.', 'error');
+        return;
+      }
+      isLoading.value = true;
+      const apiUrl = `${import.meta.env.VITE_API_URL}presupuesto/pausa/${contratoId}/`;
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Usuario-Sesion': usuario.value || 'Anónimo',
+            'X-Pagina-Origen': 'Contratos',
+          },
+          body: JSON.stringify({ pausa: nuevaPausaDB }),
+        });
+        if (response.ok) {
+          mostrarMensaje(`Contrato #${contratoId} ${nuevaPausaVista ? 'pausado' : 'reactivado'} correctamente.`, 'success');
+        } else {
+          contrato.pausa = !nuevaPausaVista;
+          const errorData = await response.json();
+          console.error('ERROR al actualizar pausa:', response.status, errorData);
+          mostrarMensaje('Error al guardar el cambio de pausa. Revirtiendo.', 'error');
+        }
+      } catch (error) {
+        contrato.pausa = !nuevaPausaVista;
+        console.error('ERROR de conexión:', error);
+        mostrarMensaje('Error de conexión. No se pudo guardar la pausa.', 'error');
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    const manejarCambioPausaContrato = (contrato) => {
+      if (contrato.pausa) {
+        // Se está activando la pausa -> mostrar modal de confirmación
+        contrato.pausa = false; // Revertir temporalmente
+        abrirModalPausa(contrato);
+      } else {
+        // Se está quitando la pausa -> proceder directamente
+        actualizarPausaContrato(contrato);
+      }
+    };
+
+    const pausarContratoConfirmado = async () => {
+      if (!contratoAPausar.value) {
+        cerrarModalPausa();
+        return;
+      }
+      const contrato = contratoAPausar.value;
+      contrato.pausa = true;
+      await actualizarPausaContrato(contrato);
+      cerrarModalPausa();
+    };
+
     // PROPIEDAD COMPUTADA PARA FILTRAR CONTRATOS
     const contratosFiltrados = computed(() => {
       let lista = datos.value;
 
       // 1. Filtrar por Estado (Histórico vs Activo)
       if (mostrarHistorico.value) {
-        // Si está activado histórico, mostrar SOLO los estado = 1
-        lista = lista.filter(contrato => Number(contrato.estado) === 1);
+        // Si está activado histórico, mostrar SOLO los estado = true (1 en BD)
+        lista = lista.filter(contrato => contrato.estado === true);
       } else {
-        // Por defecto, mostrar SOLO los activos (estado != 1)
-        lista = lista.filter(contrato => Number(contrato.estado) !== 1);
+        // Por defecto, mostrar SOLO los activos (estado = false)
+        lista = lista.filter(contrato => contrato.estado !== true);
       }
 
       // 2. Filtrar por Texto de Búsqueda
@@ -1237,10 +1309,9 @@ export default {
           // El filtrado se hace en contratosFiltrados
           datos.value = data.data.map(contrato => ({
             ...contrato,
-            // Aseguramos que el estado se maneje consistentemente como 0 o 1
-            // Si es 1, "1", o true, lo forzamos a 1 (Histórico/Descartado)
-            // Cualquier otro valor (0, null, undefined, false) será 0 (Activo)
-            estado: (contrato.estado == 1 || contrato.estado === '1' || contrato.estado === true) ? 1 : 0
+            // estado: 0=activo (unchecked), 1=en historial (checked)
+            estado: (contrato.estado == 1 || contrato.estado === '1' || contrato.estado === true) ? true : false,
+            pausa: (contrato.pausa == 1 || contrato.pausa === '1' || contrato.pausa === true) ? true : false,
           }));
 
         } else {
@@ -1391,7 +1462,15 @@ export default {
       cerrarModalDeshabilitar,
       deshabilitarContratoConfirmado,
       contratoADeshabilitar,
-      nivel, // Added nivel to the return object
+      nivel,
+      // PAUSA
+      mostrarModalPausa,
+      contratoAPausar,
+      abrirModalPausa,
+      cerrarModalPausa,
+      actualizarPausaContrato,
+      manejarCambioPausaContrato,
+      pausarContratoConfirmado,
     };
   },
 };
@@ -1751,7 +1830,8 @@ export default {
                 <th>Credito</th>
                 <th>Carta</th>
                 <th title="Generacion Cuotas">Cuotas</th>
-                <th title="Contrato pagado se debe deshabilitar">Descartar</th>
+                <th title="Contrato pagado se debe deshabilitar">Historial</th>
+                <th title="Pausa de morosidad">Pausa</th>
               </tr>
             </thead>
             <tbody>
@@ -1804,13 +1884,22 @@ export default {
                     <input class="form-check-input" type="checkbox" :id="'flexSwitchCheckChecked-' + contrato.id"
                       v-model="contrato.estado" @change="manejarCambioEstadoContrato(contrato)"
                       :disabled="nivel !== 'ADMIN'" />
-                    <!-- Habilitado visualmente según el booleano -->
+                    <!-- Historial: Habilitado visualmente según el booleano -->
+                  </div>
+                </td>
+
+                <td style="text-align: center;" @click.stop>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" :id="'flexSwitchPausa-' + contrato.id"
+                      v-model="contrato.pausa" @change="manejarCambioPausaContrato(contrato)"
+                      :disabled="nivel !== 'ADMIN'" />
+                    <!-- Pausa: excluye el contrato de cálculos de morosidad -->
                   </div>
                 </td>
 
               </tr>
               <tr v-if="contratosFiltrados.length === 0">
-                <td colspan="17" class="text-center">No se encontraron contratos que coincidan con el filtro.</td>
+                <td colspan="18" class="text-center">No se encontraron contratos que coincidan con el filtro.</td>
               </tr>
             </tbody>
           </table>
@@ -1874,6 +1963,34 @@ export default {
     </div>
   </div>
   <div v-if="mostrarModalDeshabilitar" class="modal-backdrop fade show"></div>
+
+  <!-- Modal de confirmación para PAUSAR contrato -->
+  <div v-if="mostrarModalPausa" class="modal fade show" tabindex="-1" style="display: block;" aria-modal="true"
+    role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title">Confirmar Pausa de Contrato</h5>
+          <button type="button" class="btn-close btn-close-white" @click="cerrarModalPausa" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>¿Estás seguro de que deseas pausar este contrato?</strong></p>
+          <p>Al pausar este contrato:</p>
+          <ul>
+            <li>No se considerará en los cálculos de morosidad</li>
+            <li>Seguirá visible en la lista de contratos activos</li>
+            <li>Las cuotas no serán afectadas</li>
+          </ul>
+          <p class="text-info"><strong>Nota:</strong> Esta acción puede ser revertida desactivando la pausa.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cerrarModalPausa">Cancelar</button>
+          <button type="button" class="btn btn-info text-white" @click="pausarContratoConfirmado">Pausar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-if="mostrarModalPausa" class="modal-backdrop fade show"></div>
 
   <Footer></Footer>
 </template>

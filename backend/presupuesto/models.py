@@ -19,6 +19,7 @@ class Presupuesto(models.Model):
     fecha_inicio_pago = models.DateField(null=True)
     precio_venta = models.IntegerField(null=True)
     estado = models.IntegerField(default=0)
+    pausa = models.IntegerField(default=0)
 
  
     #clase helper
