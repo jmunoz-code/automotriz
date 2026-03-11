@@ -38,14 +38,21 @@ class PagoCuotasSerializer(serializers.ModelSerializer):
     def get_abono_total(self, obj):
         abonos_map = self.context.get('abonos_map')
         if abonos_map is not None:
+            if obj.numero_contrato:
+                a = abonos_map.get((obj.rut_cliente, obj.patente, obj.numero_cuota, obj.numero_contrato))
+                if a is not None: return a
             return abonos_map.get((obj.rut_cliente, obj.patente, obj.numero_cuota), 0)
             
         # Fallback si no hay contexto (compatibilidad)
-        abono = DetallePagoCuotas.objects.filter(
+        q = DetallePagoCuotas.objects.filter(
             rut=obj.rut_cliente, 
             patente=obj.patente,
             numero_cuota=obj.numero_cuota
-        ).aggregate(Sum('monto_cuota'))
+        )
+        if obj.numero_contrato:
+            q = q.filter(numero_contrato=obj.numero_contrato)
+            
+        abono = q.aggregate(Sum('monto_cuota'))
         return abono['monto_cuota__sum'] or 0
     
     def get_dias_atraso(self, obj):
@@ -71,11 +78,18 @@ class PagoCuotasSerializer(serializers.ModelSerializer):
         except Clientes.DoesNotExist:
             return None
 
-    def _get_presupuesto(self, rut, patente):
+    def _get_presupuesto(self, obj):
         presupuestos_map = self.context.get('presupuestos_map')
         if presupuestos_map is not None:
-            return presupuestos_map.get((rut, patente))
-        return Presupuesto.objects.filter(rut_cliente=rut, patente_vehiculo=patente).first()
+            if obj.numero_contrato:
+                p = presupuestos_map.get((obj.rut_cliente, obj.patente, obj.numero_contrato))
+                if p: return p
+            return presupuestos_map.get((obj.rut_cliente, obj.patente))
+        
+        q = Presupuesto.objects.filter(rut_cliente=obj.rut_cliente, patente_vehiculo=obj.patente)
+        if obj.numero_contrato:
+            q = q.filter(numero_contrato=obj.numero_contrato)
+        return q.first()
 
     def get_fono(self, obj):
         cliente = self._get_cliente(obj.rut_cliente)
@@ -90,25 +104,25 @@ class PagoCuotasSerializer(serializers.ModelSerializer):
         return  cliente.apellidos if cliente else None
     
     def get_monto_a_financiar(self, obj):
-        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        p = self._get_presupuesto(obj)
         return p.monto_a_financiar if p else None
     
     def get_numero_cuotas(self, obj):
-        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        p = self._get_presupuesto(obj)
         return p.numero_cuotas if p else None
     
     def get_precio_venta(self, obj):
-        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        p = self._get_presupuesto(obj)
         return p.precio_venta if p else None
     
     def get_valor_pie(self, obj):
-        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        p = self._get_presupuesto(obj)
         return p.valor_pie if p else None
     
     def get_interes_mensual(self, obj):
-        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        p = self._get_presupuesto(obj)
         return p.interes_mensual if p else None
     
     def get_fecha_creacion(self, obj):
-        p = self._get_presupuesto(obj.rut_cliente, obj.patente)
+        p = self._get_presupuesto(obj)
         return p.fecha_creacion if p else None

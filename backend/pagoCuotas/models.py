@@ -12,6 +12,7 @@ class PagoCuotas(models.Model):
     fecha_vencimiento = models.DateField(null=True)
     fecha_pago = models.DateField(null=True)
     observacion = models.CharField(max_length=200, null=True)
+    numero_contrato = models.CharField(max_length=50, null=True)
     # --- Nuevo campo para el saldo pendiente ---
     interes_mora = models.IntegerField(null=True)
     

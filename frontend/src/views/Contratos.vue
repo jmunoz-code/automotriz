@@ -28,6 +28,7 @@ export default {
       numero_cuotas: 0,
       fecha: '',
       fecha_creacion: '',
+      numero_contrato: null,
       observacion: null,
       patenteaBuscar: null,
       tipo_automovil: null,
@@ -437,6 +438,7 @@ export default {
       const params = new URLSearchParams({
         rut_cliente: rut_cliente,
         patente: patente,
+        numero_contrato: contrato.numero_contrato || '',
         numero_cuota: numero_cuota,
         monto_cuota: monto_cuota,
         fecha_vencimiento: fecha_inicio_pago,
@@ -771,6 +773,8 @@ export default {
         formData.value.fecha = '';
       }
 
+      formData.value.numero_contrato = contrato.numero_contrato;
+
       // 🐛 CORRECCIÓN DEL ERROR 🐛
       // Realiza la misma verificación para la fecha de creación
       if (contrato.fecha_creacion) {
@@ -937,6 +941,7 @@ export default {
         let payload = {};
         if (formData.value.tipo_pago_seleccionado === 'contado') {
           payload = {
+            numero_contrato: formData.value.numero_contrato,
             valor_pie: 0,
             numero_cuotas: 0,
             fecha_creacion: formData.value.fecha_creacion.toString().slice(0, 10),
@@ -951,6 +956,7 @@ export default {
 
           // CORRECCIÓN CLAVE: Accede a calculo.value aquí
           payload = {
+            numero_contrato: formData.value.numero_contrato,
             valor_pie: formData.value.valor_pie,
             numero_cuotas: formData.value.numero_cuotas,
             fecha_creacion: formData.value.fecha_creacion,
@@ -980,6 +986,28 @@ export default {
 
         if (response.ok) {
           mostrarMensaje('¡Contrato actualizado exitosamente!', 'success');
+
+          if (formData.value.tipo_pago_seleccionado === 'credito' && formData.value.numero_cuotas > 0) {
+            console.log('>>> Generando cuotas post-modificación...');
+            const contratoParaCuotas = {
+              rut_cliente: formData.value.rut,
+              numero_contrato: formData.value.numero_contrato,
+              patente_vehiculo: formData.value.patente,
+              numero_cuotas: formData.value.numero_cuotas,
+              precio_venta: formData.value.precio_venta,
+              valor_pie: formData.value.valor_pie,
+              interes_mensual: formData.value.interes_mensual,
+              valor_cuota: pasar_valor,
+              fecha_inicio_pago: formData.value.fecha
+            };
+            try {
+              await generarCuotas(contratoParaCuotas);
+            } catch (errorGen) {
+              console.error('>>> ERROR en generarCuotas():', errorGen);
+              mostrarMensaje('Error generando cuotas: ' + errorGen.message, 'error');
+            }
+          }
+
           calculo.value = 0;
           cargarListaDeContratos();
           limpiarFormulario();
@@ -1077,6 +1105,7 @@ export default {
 
         if (formData.value.tipo_pago_seleccionado === 'contado') {
           payload = {
+            numero_contrato: formData.value.numero_contrato,
             valor_pie: 0,
             numero_cuotas: 0,
             fecha_creacion: formData.value.fecha_creacion,
@@ -1106,6 +1135,7 @@ export default {
           }
 
           payload = {
+            numero_contrato: formData.value.numero_contrato,
             valor_pie: formData.value.valor_pie,
             numero_cuotas: formData.value.numero_cuotas,
 
@@ -1172,6 +1202,7 @@ export default {
             // Guardar los datos ANTES de limpiar el formulario
             const contratoParaCuotas = {
               rut_cliente: formData.value.rut,
+              numero_contrato: formData.value.numero_contrato,
               patente_vehiculo: formData.value.patente,
               numero_cuotas: formData.value.numero_cuotas,
               precio_venta: formData.value.precio_venta,
@@ -1363,6 +1394,7 @@ export default {
         valor_pie: null,
         fecha: '',
         fecha_creacion: '',
+        numero_contrato: null,
         patenteaBuscar: null,
         tipo_automovil: null,
         marca: null,
@@ -1685,8 +1717,15 @@ export default {
 
             <div class="card-body left">
               <div class="mb-3 row align-items-center">
-                <label class="col-md-2 col-form-label negrita">Tipo de Pago</label>
-                <div class="col-md-4">
+
+                <label for="numero_contrato" class="col-md-2 col-form-label negrita">Número Contrato</label>
+                <div class="col-md-3">
+                  <input type="number" class="form-control form-control-sm negrita" id="numero_contrato"
+                    v-model="formData.numero_contrato" style="width: 50px;" />
+                </div>
+
+                <label class="col-md-auto col-form-label negrita ms-4">Tipo de Pago</label>
+                <div class="col-md-auto">
                   <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" id="pagoContado" value="contado"
                       v-model="formData.tipo_pago_seleccionado">
@@ -1706,6 +1745,7 @@ export default {
                   <input type="date" class="form-control form-control-sm negrita" id="fecha_creacion"
                     name="fecha_creacion" v-model="formData.fecha_creacion" />
                 </div>
+
               </div>
 
               <div class="mb-3 row align-items-center">
@@ -1755,6 +1795,7 @@ export default {
                   <div class="col-md-3">
                     <input type="text" class="form-control form-control-sm negrita" size="10" maxlength="10"
                       id="valor_cuota" name="valor_cuota" :value="formatearMilesConPunto(formData.valor_cuota)"
+                      @input="() => { formData.valor_cuota = parseInt($event.target.value.replace(/\D/g, '')) || 0 }"
                       style="width: 200px" @blur="handleBlur" />
                   </div>
 
@@ -1816,6 +1857,7 @@ export default {
               <tr style="text-align: center;">
                 <th>Fecha Contrato</th>
                 <th>Fecha Inicio Pago</th>
+                <th>Contrato #</th>
                 <th>Patente</th>
                 <th>Nombres</th>
                 <th>Apellidos</th>
@@ -1839,6 +1881,7 @@ export default {
                 @click="cargarContratoEnFormulario(contrato)" style="cursor: pointer;">
                 <td style="text-align: center;">{{ formatearFecha(contrato.fecha_creacion) }}</td>
                 <td style="text-align: center;">{{ formatearFecha(contrato.fecha_inicio_pago) }}</td>
+                <td style="text-align: center;">{{ contrato.numero_contrato }}</td>
                 <td style="text-align: center;">{{ contrato.patente_vehiculo }}</td>
                 <td style="text-align: left;">{{ contrato.nombre_cliente }}</td>
                 <td style="text-align: left;">{{ contrato.apellidos }}</td>

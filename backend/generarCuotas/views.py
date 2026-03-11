@@ -34,6 +34,7 @@ class GenerarCuotasAPIView(APIView):
             # Validación y conversión manual de los parámetros de la URL
             rut_cliente = params['rut_cliente']
             patente = params['patente']
+            numero_contrato = params.get('numero_contrato', None)
             
             # Conversión a tipos Python nativos
             cantidad_cuotas = int(params['numero_cuota'])
@@ -55,7 +56,10 @@ class GenerarCuotasAPIView(APIView):
  
             with transaction.atomic():
                 # 🟢 LIMPIEZA PREVENTIVA: Eliminar cuotas previas de este registro para evitar errores de duplicados (Idempotencia)
-                Cuota.objects.filter(rut_cliente=rut_cliente, patente=patente).delete()
+                if numero_contrato:
+                    Cuota.objects.filter(rut_cliente=rut_cliente, patente=patente, numero_contrato=numero_contrato).delete()
+                else:
+                    Cuota.objects.filter(rut_cliente=rut_cliente, patente=patente).delete()
 
                 for i in range(cantidad_cuotas):
                     # Uso de dateutil.relativedelta para el cálculo de meses (importado arriba)
@@ -78,6 +82,7 @@ class GenerarCuotasAPIView(APIView):
                     cuota = Cuota.objects.create(
                         rut_cliente=rut_cliente,
                         patente=patente,
+                        numero_contrato=numero_contrato,
                         numero_cuota=i + 1,
                         fecha_vencimiento=fecha_cuota,
                         monto_cuota=monto_cuota_fija,

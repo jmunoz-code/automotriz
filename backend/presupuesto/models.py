@@ -20,6 +20,7 @@ class Presupuesto(models.Model):
     precio_venta = models.IntegerField(null=True)
     estado = models.IntegerField(default=0)
     pausa = models.IntegerField(default=0)
+    numero_contrato = models.CharField(max_length=50, null=True)
 
  
     #clase helper

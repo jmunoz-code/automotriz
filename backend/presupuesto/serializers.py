@@ -43,6 +43,7 @@ class PresupuestoSerializer(serializers.ModelSerializer):
             'apellidos',
             'estado',
             'pausa',
+            'numero_contrato',
         ]
 
     def get_modelo_vehiculo(self, obj):

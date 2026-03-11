@@ -130,7 +130,8 @@ export default {
       isLoading.value = true;
       try {
         // NOTA: Ajusté la URL de fetch según el código proporcionado
-        const url = `${import.meta.env.VITE_API_URL}detallepago/${cuota.value.rut_cliente}/${cuota.value.patente}/${cuota.value.numero_cuota}/`;
+        const queryParams = cuota.value.numero_contrato ? `?numero_contrato=${cuota.value.numero_contrato}` : '';
+        const url = `${import.meta.env.VITE_API_URL}detallepago/${cuota.value.rut_cliente}/${cuota.value.patente}/${cuota.value.numero_cuota}/${queryParams}`;
         console.log("DEBUG: Fetching abonos from:", url);
 
         const response = await fetch(url);

@@ -42,6 +42,7 @@ export default {
           body: JSON.stringify({
             rut: cuotaSeleccionada.value.rut_cliente,
             patente: cuotaSeleccionada.value.patente,
+            numero_contrato: cuotaSeleccionada.value.numero_contrato,
             numero_cuota: cuotaSeleccionada.value.numero_cuota,
             monto_cuota: montoAbono.value, // Esto será el monto del abono
             interes: interes.value, // Envía el valor del interés

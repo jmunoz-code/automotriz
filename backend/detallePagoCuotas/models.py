@@ -11,6 +11,7 @@ class DetallePagoCuotas(models.Model):
     interes = models.FloatField(null=True)
     capital = models.IntegerField(null=True)
     fecha_abono = models.DateField(auto_now_add=True)
+    numero_contrato = models.CharField(max_length=50, null=True)
 
     class Meta:
         db_table = 'detalle_pago' # Nombre real de tu tabla en la base de datos

@@ -244,7 +244,12 @@ class PresupuestoEstadoByRutPatenteAPIView(APIView):
     def patch(self, request, rut, patente): 
         
         # 1. Buscar instancias del Presupuesto por RUT y PATENTE
-        presupuestos = Presupuesto.objects.filter(rut_cliente=rut, patente_vehiculo=patente)
+        query_params = {'rut_cliente': rut, 'patente_vehiculo': patente}
+        numero_contrato = request.query_params.get('numero_contrato') or request.data.get('numero_contrato')
+        if numero_contrato:
+            query_params['numero_contrato'] = numero_contrato
+            
+        presupuestos = Presupuesto.objects.filter(**query_params)
         
         if not presupuestos.exists():
             raise NotFound(f"No se encontró ningún Presupuesto con RUT: {rut} y PATENTE: {patente}")

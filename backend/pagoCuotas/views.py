@@ -27,6 +27,7 @@ class PagoCuotasAPIView(APIView):
         try:
             rut_cliente = params['rut_cliente']
             patente = params['patente']
+            numero_contrato = params.get('numero_contrato')
             cantidad_cuotas = int(params['numero_cuota'])
             
             monto_cuota_fija = Decimal(str(params['monto_cuota'])).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -58,6 +59,7 @@ class PagoCuotasAPIView(APIView):
                     Cuota.objects.create(
                         rut_cliente=rut_cliente,
                         patente=patente,
+                        numero_contrato=numero_contrato,
                         numero_cuota=i + 1,
                         fecha_vencimiento=fecha_cuota,
                         monto_cuota=monto_cuota_fija,
@@ -147,7 +149,7 @@ class PagoCuotasAPIView(APIView):
                     cuotas = Cuota.objects.none()
 
             # Ordenar
-            cuotas = cuotas.order_by('rut_cliente', 'patente', 'numero_cuota')
+            cuotas = cuotas.order_by('rut_cliente', 'patente', 'numero_contrato', 'numero_cuota')
             
             # --- OPTIMIZACIÓN DE SERIALIZACIÓN (BULK FETCH) ---
             # Convertimos a lista para "materializar" la query principal una sola vez
@@ -178,6 +180,7 @@ class PagoCuotasAPIView(APIView):
                 qs_pres = Presupuesto.objects.filter(rut_cliente__in=ruts, patente_vehiculo__in=patentes)
                 for p in qs_pres:
                     presupuestos_map[(p.rut_cliente, p.patente_vehiculo)] = p
+                    presupuestos_map[(p.rut_cliente, p.patente_vehiculo, p.numero_contrato)] = p
             
             # Bulk Fetch Abonos (DetallePagoCuotas)
             abonos_map = {}
@@ -185,10 +188,11 @@ class PagoCuotasAPIView(APIView):
                 qs_abonos = DetallePagoCuotas.objects.filter(
                     rut__in=ruts, 
                     patente__in=patentes
-                ).values('rut', 'patente', 'numero_cuota').annotate(total=Sum('monto_cuota'))
+                ).values('rut', 'patente', 'numero_cuota', 'numero_contrato').annotate(total=Sum('monto_cuota'))
                 
                 for ab in qs_abonos:
                     abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'])] = ab['total']
+                    abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'], ab.get('numero_contrato'))] = ab['total']
 
             # Contexto para el serializador
             ctx = {
@@ -254,8 +258,14 @@ class EliminarCuotasPorRutPatenteAPIView(APIView):
         if not rut_cliente or not patente:
             return Response({"message": "RUT y Patente requeridos."}, status=status.HTTP_400_BAD_REQUEST)
 
+        numero_contrato = request.query_params.get('numero_contrato') or request.data.get('numero_contrato')
+
         try:
-            num, _ = Cuota.objects.filter(rut_cliente=rut_cliente, patente=patente).delete()
+            query_params_delete = {'rut_cliente': rut_cliente, 'patente': patente}
+            if numero_contrato:
+                query_params_delete['numero_contrato'] = numero_contrato
+                
+            num, _ = Cuota.objects.filter(**query_params_delete).delete()
             if num > 0:
                 return Response({"message": f"{num} cuotas eliminadas."}, status=status.HTTP_200_OK)
             else:

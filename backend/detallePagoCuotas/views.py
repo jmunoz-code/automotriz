@@ -108,22 +108,23 @@ class DetallePagoCuotasIndividualAPI(APIView):
         try:
             from presupuesto.models import Presupuesto
             from django.db.models import Q
+            numero_contrato = request.query_params.get('numero_contrato')
             
             # Verificar primero que el contrato no esté descartado
-            contrato_activo = Presupuesto.objects.filter(
-                rut_cliente=rut,
-                patente_vehiculo=patente,
-                estado=0  # Solo contratos no descartados
-            ).exists()
+            query = Q(rut_cliente=rut, patente_vehiculo=patente, estado=0)
+            if numero_contrato:
+                query &= Q(numero_contrato=numero_contrato)
+                
+            contrato_activo = Presupuesto.objects.filter(query).exists()
             
             if not contrato_activo:
                 raise NotFound(f"No se encontró un contrato activo para RUT: {rut}, Patente: {patente}.")
             
-            detalles_abonos = DetallePagoCuotas.objects.order_by('-id').filter(
-                rut=rut,
-                patente=patente,
-                numero_cuota=numero_cuota
-            )
+            q_abonos = Q(rut=rut, patente=patente, numero_cuota=numero_cuota)
+            if numero_contrato:
+                q_abonos &= Q(numero_contrato=numero_contrato)
+                
+            detalles_abonos = DetallePagoCuotas.objects.order_by('-id').filter(q_abonos)
             if not detalles_abonos.exists():
                 raise NotFound(f"No se encontraron abonos para RUT: {rut}, Patente: {patente} y Cuota: {numero_cuota}.")
             serializer = DetallePagoCuotasSerializer(detalles_abonos, many=True)
@@ -183,6 +184,7 @@ class EliminarDetallesPorRutPatenteAPI(APIView):
         # Aceptar parámetros tanto de query_params como de request.data
         rut = request.query_params.get('rut') or request.data.get('rut')
         patente = request.query_params.get('patente') or request.data.get('patente')
+        numero_contrato = request.query_params.get('numero_contrato') or request.data.get('numero_contrato')
         
         print(f"DEBUG: Solicitud de eliminación de detalles para RUT: {rut}, Patente: {patente}")
         
@@ -193,7 +195,11 @@ class EliminarDetallesPorRutPatenteAPI(APIView):
             )
         
         try:
-            detalles_eliminados, _ = DetallePagoCuotas.objects.filter(rut=rut, patente=patente).delete()
+            query_params_delete = {'rut': rut, 'patente': patente}
+            if numero_contrato:
+                query_params_delete['numero_contrato'] = numero_contrato
+
+            detalles_eliminados, _ = DetallePagoCuotas.objects.filter(**query_params_delete).delete()
             
             if detalles_eliminados > 0:
                 print(f"DEBUG: {detalles_eliminados} detalle(s) de pago eliminado(s) para RUT: {rut}, Patente: {patente}")

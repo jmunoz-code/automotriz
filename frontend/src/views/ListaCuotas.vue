@@ -176,6 +176,7 @@
                   body: JSON.stringify({
                     rut_cliente: filtroRutCuota.value,
                     patente: filtroPatenteCuota.value,
+                    numero_contrato: clienteSeleccionado.value?.numero_contrato || undefined,
                   }),
                 });
                 if (response.ok) {
@@ -332,14 +333,15 @@
               let capitalRestante = 0;
               let lastRut = null;
               let lastPatente = null;
+              let lastNumeroContrato = null;
 
               // Se usa .map() para crear un nuevo array con los cálculos
               return cuotasFiltradas.map((cuota, index) => {
                 const nuevaCuota = { ...cuota };
 
-                // Condición para reiniciar el cálculo: si el RUT o la patente cambian.
-                if (index === 0 || nuevaCuota.rut_cliente !== lastRut || nuevaCuota.patente !== lastPatente) {
-                  capitalRestante = parseFloat(nuevaCuota.monto_a_financiar);
+                // Condición para reiniciar el cálculo: si el RUT, la patente o el numero de contrato cambian.
+                if (index === 0 || nuevaCuota.rut_cliente !== lastRut || nuevaCuota.patente !== lastPatente || nuevaCuota.numero_contrato !== lastNumeroContrato) {
+                  capitalRestante = parseFloat(nuevaCuota.monto_a_financiar) || parseFloat(nuevaCuota.monto_prestamo) || 0;
                 }
 
                 // Calcula el interés de la cuota actual en base al capital restante.
@@ -365,6 +367,7 @@
                 // Almacena los valores de la fila actual para la próxima comparación.
                 lastRut = nuevaCuota.rut_cliente;
                 lastPatente = nuevaCuota.patente;
+                lastNumeroContrato = nuevaCuota.numero_contrato;
 
                 // Cálculo de días de atraso
                 const fechaVenc = new Date(nuevaCuota.fecha_vencimiento);
@@ -385,11 +388,12 @@
 
 
               cuotas.forEach((cuota) => {
-                const key = `${cuota.rut_cliente}-${cuota.patente}`;
+                const key = `${cuota.rut_cliente}-${cuota.patente}-${cuota.numero_contrato}`;
 
                 if (!grupos.has(key)) {
                   grupos.set(key, {
                     rut_cliente: cuota.rut_cliente,
+                    numero_contrato: cuota.numero_contrato,
                     nombres: cuota.nombres,
                     apellidos: cuota.apellidos,
                     patente: cuota.patente,
@@ -431,7 +435,8 @@
               if (!clienteSeleccionado.value) return [];
               return cuotasConCalculoDeCapital.value.filter(c =>
                 c.rut_cliente === clienteSeleccionado.value.rut_cliente &&
-                c.patente === clienteSeleccionado.value.patente
+                c.patente === clienteSeleccionado.value.patente &&
+                c.numero_contrato === clienteSeleccionado.value.numero_contrato
               );
             });
 
@@ -449,7 +454,10 @@
 
               try {
                 const nuevoEstado = mostrarHistorico.value ? 1 : 0;
-                const apiUrl = `${import.meta.env.VITE_API_URL}presupuesto/${clienteSeleccionado.value.rut_cliente}/${clienteSeleccionado.value.patente}/`;
+                let apiUrl = `${import.meta.env.VITE_API_URL}presupuesto/${clienteSeleccionado.value.rut_cliente}/${clienteSeleccionado.value.patente}/`;
+                if (clienteSeleccionado.value.numero_contrato) {
+                  apiUrl += `?numero_contrato=${clienteSeleccionado.value.numero_contrato}`;
+                }
 
                 const response = await fetch(apiUrl, {
                   method: 'PATCH',
@@ -683,6 +691,7 @@
             <thead>
               <tr>
                 <th style="text-align: center">RUT</th>
+                <th style="text-align: center">Nº Contrato</th>
                 <th style="text-align: center">Nombre</th>
                 <th style="text-align: center">Apellido</th>
                 <th style="text-align: center">Patente</th>
@@ -695,9 +704,10 @@
               <tr v-else-if="isLoading">
                 <td colspan="4" class="text-center">Cargando...</td>
               </tr>
-              <tr v-for="grupo in clientesEnMora" :key="grupo.rut_cliente + grupo.patente"
+              <tr v-for="grupo in clientesEnMora" :key="grupo.rut_cliente + grupo.patente + grupo.numero_contrato"
                 @click="verDetalleCliente(grupo)" style="cursor: pointer;">
                 <td style="text-align: center">{{ grupo.rut_cliente }}</td>
+                <td style="text-align: center">{{ grupo.numero_contrato || 'N/A' }}</td>
                 <td style="text-align: center">{{ grupo.nombres }}</td>
                 <td style="text-align: center">{{ grupo.apellidos }}</td>
                 <td style="text-align: center">{{ grupo.patente }}</td>
@@ -713,7 +723,7 @@
               <h5 class="text-secondary mb-0 me-3">
                 Detalle de Cuotas: {{ clienteSeleccionado.nombres }} {{ clienteSeleccionado.apellidos }} ({{
                   clienteSeleccionado.rut_cliente }} - {{
-                  clienteSeleccionado.patente }})
+                  clienteSeleccionado.patente }} - Contrato Nº: {{ clienteSeleccionado.numero_contrato || 'N/A' }})
               </h5>
               <!-- Solo mostrar checkbox si se está viendo el histórico -->
               <div v-if="mostrarHistorico" class="form-check d-flex align-items-center checkbox-historico-detalle">
