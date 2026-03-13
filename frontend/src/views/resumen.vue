@@ -65,7 +65,7 @@ export default {
 
                     let suma = 0;
                     data.forEach(cuota => {
-                        if (cuota.dias_atraso >= 10) {
+                        if (cuota.dias_atraso > 10 && parseInt(cuota.estado) === 0) {
                             suma += parseFloat(cuota.monto_cuota || 0);
                         }
                     });
@@ -133,11 +133,11 @@ export default {
                 return [];
             }
 
-            // APLICAR FILTRO 1: Presupuesto (Si estado es 1, NO considerar)
+            // APLICAR FILTRO 1: Presupuesto (Solo estado 0 - Activo)
             const cuotasFiltradas = listaCuotas.value.filter(cuota => {
                 // Asumimos que el campo 'estado' (del presupuesto) está disponible en el objeto cuota
                 const estadoPresupuesto = cuota.estado;
-                return estadoPresupuesto !== 1; // Solo considerar si el estado NO es 1 (ej: 0)
+                return parseInt(estadoPresupuesto) === 0; // Solo estado activo
             });
 
             if (cuotasFiltradas.length === 0) {

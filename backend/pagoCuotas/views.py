@@ -343,7 +343,7 @@ class CuotasImpagasAPIView(APIView):
                 qs_abonos = DetallePagoCuotas.objects.filter(
                     rut__in=ruts, 
                     patente__in=patentes
-                ).values('rut', 'patente', 'numero_cuota').annotate(total=Sum('monto_cuota'))
+                ).values('rut', 'patente', 'numero_cuota', 'numero_contrato').annotate(total=Sum('monto_cuota'))
                 
                 for ab in qs_abonos:
                     if ab.get('numero_contrato') is not None:

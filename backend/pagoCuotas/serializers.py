@@ -28,6 +28,7 @@ class PagoCuotasSerializer(serializers.ModelSerializer):
     precio_venta = serializers.SerializerMethodField()
     valor_pie = serializers.SerializerMethodField()
     fecha_creacion = serializers.SerializerMethodField()
+    estado = serializers.SerializerMethodField()
 
     class Meta:
         model = PagoCuotas
@@ -128,3 +129,7 @@ class PagoCuotasSerializer(serializers.ModelSerializer):
     def get_fecha_creacion(self, obj):
         p = self._get_presupuesto(obj)
         return p.fecha_creacion if p else None
+        
+    def get_estado(self, obj):
+        p = self._get_presupuesto(obj)
+        return p.estado if p else None

@@ -73,12 +73,11 @@ export default {
       return `${dia}-${mes}-${anio}`;
     };
 
-    // --- FUNCIÓN CLAVE: Agrupar Cuotas (CORREGIDA FINAL) ---
     const agruparCuotas = (cuotas) => {
       const grupos = new Map();
 
       cuotas.forEach(cuota => {
-        const key = `${cuota.rut_cliente}-${cuota.patente}`;
+        const key = `${cuota.rut_cliente}-${cuota.patente}-${cuota.numero_contrato}`;
 
         if (!grupos.has(key)) {
           grupos.set(key, {
@@ -87,7 +86,8 @@ export default {
             apellidos: cuota.apellidos,
             fono: cuota.fono,
             patente: cuota.patente,
-            monto_total_impago: 0, // Sumará el MONTO NOMINAL de las cuotas atrasadas.
+            numero_contrato: cuota.numero_contrato,
+            monto_total_impago: 0,
             observacion: cuota.observacion,
             cuotas_detalles: [],
             id_primera_cuota: cuota.id,
@@ -97,26 +97,20 @@ export default {
 
         const grupo = grupos.get(key);
 
-        // 1. Sumamos al monto total solo si la cuota está ATRASADA (dias_atraso > 0)
-        // Convertimos explicitamente dias_atraso a número para evitar errores con strings
         const diasAtraso = parseInt(cuota.dias_atraso || 0);
         if (diasAtraso > 0) {
-          // ✅ AJUSTE FINAL: Usar cuota.monto_cuota para el monto total agrupado (como se solicitó).
           grupo.monto_total_impago += parseFloat(cuota.monto_cuota || 0);
           grupo.tiene_cuotas_atrasadas = true;
         }
 
-        // 2. Agregamos el detalle.
         grupo.cuotas_detalles.push({
           id: cuota.id,
           numero_cuota: cuota.numero_cuota,
           fecha_vencimiento: cuota.fecha_vencimiento,
           dias_atraso: diasAtraso,
-          // Mantiene cuota.monto_cuota para el detalle del modal (como se había corregido previamente).
           monto_cuota: cuota.monto_cuota,
         });
 
-        // Ordenamos los detalles por fecha de vencimiento
         grupo.cuotas_detalles.sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
       });
 
@@ -156,7 +150,7 @@ export default {
 
       detallesCuotas.value = cuotasAtrasadas;
       rutSeleccionado.value = grupo.rut_cliente;
-      patenteSeleccionada.value = grupo.patente;
+      patenteSeleccionada.value = `${grupo.patente} (Contrato: ${grupo.numero_contrato})`;
       mostrarModal.value = true;
     };
 
@@ -191,7 +185,7 @@ export default {
     const totalImpagoReal10Dias = computed(() => {
       let suma = 0;
       listaCuotas.value.forEach(cuota => {
-        if (parseInt(cuota.dias_atraso || 0) >= 10) {
+        if (parseInt(cuota.dias_atraso || 0) > 10 && parseInt(cuota.estado) === 0) {
           suma += parseFloat(cuota.monto_cuota || 0);
         }
       });
@@ -210,10 +204,9 @@ export default {
           const todasLasCuotas = data.data || [];
 
           // Calculamos el saldo total pendiente (monto_cuota - abono_total)
-          // Filtrando presupuestos (estado !== 1) tal como en resumen.vue
           // Aseguramos conversión de tipos para evitar errores
           const saldoTotal = todasLasCuotas
-            .filter(cuota => parseInt(cuota.estado) !== 1)
+            .filter(cuota => parseInt(cuota.estado) === 0)
             .reduce((acc, cuota) => {
               const saldo = (parseFloat(cuota.monto_cuota) || 0) - (parseFloat(cuota.abono_total) || 0);
               return acc + saldo;
@@ -296,21 +289,22 @@ export default {
                 <th>RUT / Nombre Cliente</th>
                 <th>Telefono</th>
                 <th>Patente</th>
+                <th>N° Contrato</th>
                 <th>Monto Total Atrasado</th>
                 <th class="col-observacion">Observación</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="listaCuotasAgrupadas.length === 0">
-                <td colspan="5" class="text-center">No se encontraron grupos con cuotas atrasadas.</td>
+                <td colspan="6" class="text-center">No se encontraron grupos con cuotas atrasadas.</td>
               </tr>
-              <tr v-for="grupo in listaCuotasAgrupadas" :key="grupo.rut_cliente + grupo.patente"
+              <tr v-for="grupo in listaCuotasAgrupadas" :key="grupo.rut_cliente + grupo.patente + grupo.numero_contrato"
                 @click="mostrarDetalles(grupo)" class="clickable-row">
 
                 <td>{{ grupo.rut_cliente }} {{ grupo.nombres }} {{ grupo.apellidos }}</td>
                 <td>{{ grupo.fono }}</td>
                 <td>{{ grupo.patente }}</td>
-
+                <td>{{ grupo.numero_contrato }}</td>
                 <td class="text-end text-danger negrita">
                   $ {{ formatearMilesConPunto(grupo.monto_total_impago) }}
                 </td>
@@ -324,7 +318,7 @@ export default {
             </tbody>
             <tfoot class="no-print-tfoot">
               <tr>
-                <td colspan="3" class="text-end negrita" style="font-size: 1.1em;">TOTAL GENERAL IMPAGO:</td>
+                <td colspan="4" class="text-end negrita" style="font-size: 1.1em;">TOTAL GENERAL IMPAGO:</td>
                 <td class="text-end text-danger negrita" style="font-size: 1.1em; border-top: 2px solid #555;">
                   $ {{ formatearMilesConPunto(totalGeneralImpago) }}
                   <br>
