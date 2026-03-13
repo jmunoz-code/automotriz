@@ -44,13 +44,18 @@ class DetallePagoCuotasAPI(APIView):
         # Validar que el contrato no esté descartado
         rut = data.get('rut')
         patente = data.get('patente')
+        numero_contrato = data.get('numero_contrato')
         
         if rut and patente:
-            contrato_descartado = Presupuesto.objects.filter(
-                rut_cliente=rut,
-                patente_vehiculo=patente,
-                estado=1  # Descartado
-            ).exists()
+            query_descartado = {
+                'rut_cliente': rut,
+                'patente_vehiculo': patente,
+                'estado': 1  # Descartado
+            }
+            if numero_contrato:
+                query_descartado['numero_contrato'] = numero_contrato
+                
+            contrato_descartado = Presupuesto.objects.filter(**query_descartado).exists()
             
             if contrato_descartado:
                 return Response({
@@ -59,11 +64,15 @@ class DetallePagoCuotasAPI(APIView):
                 }, status=HTTPStatus.FORBIDDEN)
             
             # Validar que el contrato exista y esté activo
-            contrato_activo = Presupuesto.objects.filter(
-                rut_cliente=rut,
-                patente_vehiculo=patente,
-                estado=0  # Activo
-            ).exists()
+            query_activo = {
+                'rut_cliente': rut,
+                'patente_vehiculo': patente,
+                'estado': 0  # Activo
+            }
+            if numero_contrato:
+                query_activo['numero_contrato'] = numero_contrato
+                
+            contrato_activo = Presupuesto.objects.filter(**query_activo).exists()
             
             if not contrato_activo:
                 return Response({
@@ -87,53 +96,54 @@ class DetallePagoCuotasAPI(APIView):
 class DetallePagoCuotasIndividualAPI(APIView):
 
 
-     def get(self, request, rut):
+     def get(self, request, id=None, rut=None, patente=None, numero_cuota=None):
         """
-        Obtiene UN detalle de pago específico por RUT (el primero que encuentre si hay varios).
+        Obtiene detalles de pago. Maneja tanto búsqueda por ID como por RUT, Patente y Nº Cuota.
         """
-        try:
-            # Aquí se usa get_object que usa .get() que espera solo uno.
-            # Si quieres todos los de un RUT, deberías usar .filter()
-            detalle_pago_cuota = self.get_object(rut) 
-            serializer = DetallePagoCuotasSerializer(detalle_pago_cuota)
-            return Response({"data": serializer.data}, status=HTTPStatus.OK)
-        except NotFound as e:
-            return Response({"message": str(e)}, status=HTTPStatus.NOT_FOUND)
-        except Exception as e:
-            print(f"Error inesperado al obtener detalle de pago por RUT: {e}")
-            return Response({"error": f"Ocurrió un error inesperado: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
-
-
-     def get(self, request, rut, patente, numero_cuota): # Para la ruta con rut/patente/cuota
-        try:
-            from presupuesto.models import Presupuesto
-            from django.db.models import Q
-            numero_contrato = request.query_params.get('numero_contrato')
-            
-            # Verificar primero que el contrato no esté descartado
-            query = Q(rut_cliente=rut, patente_vehiculo=patente, estado=0)
-            if numero_contrato:
-                query &= Q(numero_contrato=numero_contrato)
+        if id is not None:
+            try:
+                detalle_pago_cuota = DetallePagoCuotas.objects.get(id=id)
+                serializer = DetallePagoCuotasSerializer(detalle_pago_cuota)
+                return Response({"data": serializer.data}, status=HTTPStatus.OK)
+            except DetallePagoCuotas.DoesNotExist:
+                return Response({"message": f"No se encontró ningún detalle de pago con el ID: {id}"}, status=HTTPStatus.NOT_FOUND)
+            except Exception as e:
+                print(f"Error inesperado al obtener detalle de pago por ID: {e}")
+                return Response({"error": f"Ocurrió un error inesperado: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
                 
-            contrato_activo = Presupuesto.objects.filter(query).exists()
-            
-            if not contrato_activo:
-                raise NotFound(f"No se encontró un contrato activo para RUT: {rut}, Patente: {patente}.")
-            
-            q_abonos = Q(rut=rut, patente=patente, numero_cuota=numero_cuota)
-            if numero_contrato:
-                q_abonos &= Q(numero_contrato=numero_contrato)
+        elif rut is not None and patente is not None and numero_cuota is not None:
+            try:
+                from presupuesto.models import Presupuesto
+                from django.db.models import Q
+                numero_contrato = request.query_params.get('numero_contrato')
                 
-            detalles_abonos = DetallePagoCuotas.objects.order_by('-id').filter(q_abonos)
-            if not detalles_abonos.exists():
-                raise NotFound(f"No se encontraron abonos para RUT: {rut}, Patente: {patente} y Cuota: {numero_cuota}.")
-            serializer = DetallePagoCuotasSerializer(detalles_abonos, many=True)
-            return JsonResponse({"data": serializer.data}, status=HTTPStatus.OK)
-        except NotFound as e:
-            return JsonResponse({"message": str(e)}, status=HTTPStatus.NOT_FOUND)
-        except Exception as e:
-            print(f"Error al obtener abonos por RUT, Patente y Cuota: {e}")
-            return JsonResponse({"error": f"Ocurrió un error interno al buscar abonos: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                # Verificar primero que el contrato no esté descartado
+                query = Q(rut_cliente=rut, patente_vehiculo=patente, estado=0)
+                if numero_contrato:
+                    query &= Q(numero_contrato=numero_contrato)
+                    
+                contrato_activo = Presupuesto.objects.filter(query).exists()
+                
+                if not contrato_activo:
+                    raise NotFound(f"No se encontró un contrato activo para RUT: {rut}, Patente: {patente}.")
+                
+                q_abonos = Q(rut=rut, patente=patente, numero_cuota=numero_cuota)
+                if numero_contrato:
+                    q_abonos &= Q(numero_contrato=numero_contrato)
+                    
+                detalles_abonos = DetallePagoCuotas.objects.order_by('-id').filter(q_abonos)
+                if not detalles_abonos.exists():
+                    raise NotFound(f"No se encontraron abonos para RUT: {rut}, Patente: {patente} y Cuota: {numero_cuota}.")
+                serializer = DetallePagoCuotasSerializer(detalles_abonos, many=True)
+                return JsonResponse({"data": serializer.data}, status=HTTPStatus.OK)
+            except NotFound as e:
+                return JsonResponse({"message": str(e)}, status=HTTPStatus.NOT_FOUND)
+            except Exception as e:
+                print(f"Error al obtener abonos por RUT, Patente y Cuota: {e}")
+                return JsonResponse({"error": f"Ocurrió un error interno al buscar abonos: {e}"}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        
+        else:
+             return Response({"message": "Ruta no soportada."}, status=HTTPStatus.BAD_REQUEST)
 
    
      def put(self, request, rut):

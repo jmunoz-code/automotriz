@@ -96,6 +96,7 @@ class PagoCuotasAPIView(APIView):
 
             rut_cliente = request.query_params.get('rut_cliente', None)
             patente = request.query_params.get('patente', None)
+            numero_contrato = request.query_params.get('numero_contrato', None)
             nombres_filtro = request.query_params.get('nombres', None)
             historico = request.query_params.get('historico', 'false').lower() == 'true'
 
@@ -120,6 +121,8 @@ class PagoCuotasAPIView(APIView):
                 patente_vehiculo=OuterRef('patente'), 
                 estado=estado_filtro,
                 pausa=0  # Excluir contratos pausados
+            ).filter(
+                Q(numero_contrato=OuterRef('numero_contrato')) | Q(numero_contrato__isnull=True)
             )
 
             # Filtrar cuotas base usando Exists
@@ -136,6 +139,9 @@ class PagoCuotasAPIView(APIView):
 
             if patente:
                 cuotas = cuotas.filter(patente__iexact=patente)
+
+            if numero_contrato:
+                cuotas = cuotas.filter(numero_contrato=numero_contrato)
 
             if nombres_filtro:
                 ruts_por_nombre = list(Clientes.objects.filter(
@@ -191,8 +197,10 @@ class PagoCuotasAPIView(APIView):
                 ).values('rut', 'patente', 'numero_cuota', 'numero_contrato').annotate(total=Sum('monto_cuota'))
                 
                 for ab in qs_abonos:
-                    abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'])] = ab['total']
-                    abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'], ab.get('numero_contrato'))] = ab['total']
+                    if ab.get('numero_contrato') is not None:
+                        abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'], str(ab.get('numero_contrato')))] = ab['total']
+                    else:
+                        abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'])] = ab['total']
 
             # Contexto para el serializador
             ctx = {
@@ -286,6 +294,8 @@ class CuotasImpagasAPIView(APIView):
                 patente_vehiculo=OuterRef('patente'),
                 estado=0,   # Solo activos
                 pausa=0     # Excluir contratos pausados
+            ).filter(
+                Q(numero_contrato=OuterRef('numero_contrato')) | Q(numero_contrato__isnull=True)
             )
             
             # Filtrar cuotas vencidas con Exists
@@ -336,7 +346,10 @@ class CuotasImpagasAPIView(APIView):
                 ).values('rut', 'patente', 'numero_cuota').annotate(total=Sum('monto_cuota'))
                 
                 for ab in qs_abonos:
-                    abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'])] = ab['total']
+                    if ab.get('numero_contrato') is not None:
+                        abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'], str(ab.get('numero_contrato')))] = ab['total']
+                    else:
+                        abonos_map[(ab['rut'], ab['patente'], ab['numero_cuota'])] = ab['total']
 
             # Contexto para el serializador
             ctx = {

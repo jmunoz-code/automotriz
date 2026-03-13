@@ -39,8 +39,10 @@ class PagoCuotasSerializer(serializers.ModelSerializer):
         abonos_map = self.context.get('abonos_map')
         if abonos_map is not None:
             if obj.numero_contrato:
-                a = abonos_map.get((obj.rut_cliente, obj.patente, obj.numero_cuota, obj.numero_contrato))
-                if a is not None: return a
+                a = abonos_map.get((obj.rut_cliente, obj.patente, obj.numero_cuota, str(obj.numero_contrato)))
+                if a is not None: 
+                    return a
+                return 0 # Do not fallback to abonos from other contracts
             return abonos_map.get((obj.rut_cliente, obj.patente, obj.numero_cuota), 0)
             
         # Fallback si no hay contexto (compatibilidad)

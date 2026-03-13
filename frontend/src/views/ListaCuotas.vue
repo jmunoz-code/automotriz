@@ -24,6 +24,7 @@
 
             const filtroRutCuota = ref('');
             const filtroPatenteCuota = ref('');
+            const filtroNumeroContratoCuota = ref('');
             const mostrarHistorico = ref(false);
 
             const showModal = ref(false);
@@ -137,6 +138,9 @@
                 if (filtroPatenteCuota.value) {
                   params.append('patente', filtroPatenteCuota.value);
                 }
+                if (filtroNumeroContratoCuota.value) {
+                  params.append('numero_contrato', filtroNumeroContratoCuota.value);
+                }
 
                 apiUrl += `?${params.toString()}`;
 
@@ -158,11 +162,11 @@
             };
 
             const eliminarCuotas = async () => {
-              if (!filtroRutCuota.value || !filtroPatenteCuota.value) {
-                mostrarMensaje('Por favor, ingrese un RUT de cliente y una Patente para eliminar.', 'error');
+              if (!filtroRutCuota.value || !filtroPatenteCuota.value || !filtroNumeroContratoCuota.value) {
+                mostrarMensaje('Por favor, ingrese un RUT, Patente y Nº de Contrato para eliminar.', 'error');
                 return;
               }
-              if (!confirm(`¿Está seguro de que desea eliminar todas las cuotas para el RUT: ${filtroRutCuota.value} y Patente: ${filtroPatenteCuota.value}? Esta acción no se puede deshacer.`)) {
+              if (!confirm(`¿Está seguro de que desea eliminar todas las cuotas para el RUT: ${filtroRutCuota.value}, Patente: ${filtroPatenteCuota.value} y Nº de Contrato: ${filtroNumeroContratoCuota.value}? Esta acción no se puede deshacer.`)) {
                 return;
               }
               isLoading.value = true;
@@ -176,7 +180,7 @@
                   body: JSON.stringify({
                     rut_cliente: filtroRutCuota.value,
                     patente: filtroPatenteCuota.value,
-                    numero_contrato: clienteSeleccionado.value?.numero_contrato || undefined,
+                    numero_contrato: filtroNumeroContratoCuota.value,
                   }),
                 });
                 if (response.ok) {
@@ -340,7 +344,10 @@
                 const nuevaCuota = { ...cuota };
 
                 // Condición para reiniciar el cálculo: si el RUT, la patente o el numero de contrato cambian.
-                if (index === 0 || nuevaCuota.rut_cliente !== lastRut || nuevaCuota.patente !== lastPatente || nuevaCuota.numero_contrato !== lastNumeroContrato) {
+                if (index === 0 || 
+                    String(nuevaCuota.rut_cliente) !== String(lastRut) || 
+                    String(nuevaCuota.patente) !== String(lastPatente) || 
+                    String(nuevaCuota.numero_contrato || '') !== String(lastNumeroContrato || '')) {
                   capitalRestante = parseFloat(nuevaCuota.monto_a_financiar) || parseFloat(nuevaCuota.monto_prestamo) || 0;
                 }
 
@@ -388,12 +395,13 @@
 
 
               cuotas.forEach((cuota) => {
-                const key = `${cuota.rut_cliente}-${cuota.patente}-${cuota.numero_contrato}`;
+                const numContratoStr = cuota.numero_contrato || '';
+                const key = `${cuota.rut_cliente}-${cuota.patente}-${numContratoStr}`;
 
                 if (!grupos.has(key)) {
                   grupos.set(key, {
                     rut_cliente: cuota.rut_cliente,
-                    numero_contrato: cuota.numero_contrato,
+                    numero_contrato: numContratoStr,
                     nombres: cuota.nombres,
                     apellidos: cuota.apellidos,
                     patente: cuota.patente,
@@ -420,9 +428,9 @@
               // Retornar grupos
               const resultados = Array.from(grupos.values());
 
-              // Si hay filtros activos (RUT o Patente) o modo Histórico, mostramos TODOS los resultados encontrados
+              // Si hay filtros activos o modo Histórico, mostramos TODOS los resultados encontrados
               // independientemente de si tienen deuda o no. Así el usuario puede "buscar" un cliente al día.
-              if (mostrarHistorico.value || filtroRutCuota.value || filtroPatenteCuota.value) {
+              if (mostrarHistorico.value || filtroRutCuota.value || filtroPatenteCuota.value || filtroNumeroContratoCuota.value) {
                 return resultados;
               }
               // En la vista general (sin filtros), solo mostramos los que tienen deuda pendiente
@@ -434,9 +442,9 @@
             const cuotasDeClienteSeleccionado = computed(() => {
               if (!clienteSeleccionado.value) return [];
               return cuotasConCalculoDeCapital.value.filter(c =>
-                c.rut_cliente === clienteSeleccionado.value.rut_cliente &&
-                c.patente === clienteSeleccionado.value.patente &&
-                c.numero_contrato === clienteSeleccionado.value.numero_contrato
+                String(c.rut_cliente) === String(clienteSeleccionado.value.rut_cliente) &&
+                String(c.patente) === String(clienteSeleccionado.value.patente) &&
+                String(c.numero_contrato || '') === String(clienteSeleccionado.value.numero_contrato || '')
               );
             });
 
@@ -493,7 +501,7 @@
               }
             };
 
-            watch([filtroRutCuota, filtroPatenteCuota, mostrarHistorico], () => {
+            watch([filtroRutCuota, filtroPatenteCuota, filtroNumeroContratoCuota, mostrarHistorico], () => {
               cargarListaDeCuotas();
             });
 
@@ -508,6 +516,7 @@
               tipoMensaje,
               filtroRutCuota,
               filtroPatenteCuota,
+              filtroNumeroContratoCuota,
               cargarListaDeCuotas,
               eliminarCuotas,
               formatearMilesConPunto,
@@ -658,17 +667,22 @@
       </div>
       <div class="card-body">
         <div class="row mb-4" v-if="!clienteSeleccionado">
-          <div class="col-md-4">
-            <label for="filtroRutCuota" class="form-label negrita">Filtrar/Eliminar por RUT Cliente:</label>
+          <div class="col-md-3">
+            <label for="filtroRutCuota" class="form-label negrita">Filtrar por RUT Cliente:</label>
             <input type="text" class="form-control form-control-sm" id="filtroRutCuota" v-model.lazy="filtroRutCuota"
               placeholder="Ej: 12.345.678-9" />
           </div>
-          <div class="col-md-4">
-            <label for="filtroPatenteCuota" class="form-label negrita">Filtrar/Eliminar por Patente:</label>
+          <div class="col-md-3">
+            <label for="filtroPatenteCuota" class="form-label negrita">Filtrar por Patente:</label>
             <input type="text" class="form-control form-control-sm" id="filtroPatenteCuota"
               v-model.lazy="filtroPatenteCuota" placeholder="Ej: ABCD12" />
           </div>
-          <div class="col-md-4 d-flex align-items-end justify-content-between">
+          <div class="col-md-3">
+            <label for="filtroNumeroContratoCuota" class="form-label negrita">Filtrar por Nº Contrato:</label>
+            <input type="text" class="form-control form-control-sm" id="filtroNumeroContratoCuota"
+              v-model.lazy="filtroNumeroContratoCuota" placeholder="Ej: 1234" />
+          </div>
+          <div class="col-md-3 d-flex align-items-end justify-content-between">
             <div class="form-check d-flex align-items-center me-3 checkbox-historico">
               <input type="checkbox" class="form-check-input checkbox-large" id="checkHistorico"
                 v-model="mostrarHistorico">
