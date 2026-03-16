@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Si el recurso solicitado existe como archivo o directorio real, servirlo directamente
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Redirigir todo lo demás al index.html para que Vue Router maneje la navegación
+  RewriteRule ^ index.html [L]
+</IfModule>

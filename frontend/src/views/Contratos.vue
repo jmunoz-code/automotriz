@@ -108,28 +108,26 @@ export default {
       return fechaISO;
     };
 
-    const goToContrato = (contractPatente, id, pagina) => {
-      const rutCliente = formData.value.rut;
+    const goToContrato = (contractPatente, id, pagina, rutCliente) => {
+      const rut = rutCliente || formData.value.rut;
 
-      if (pagina == 0) {
-        router.push({
+      let routeData;
+      if (pagina == 0 || pagina == 1) {
+        routeData = router.resolve({
           name: 'ContratoCompraVenta',
-          params: { rut: rutCliente, idPrep: id, patente: contractPatente, pagina }
-        });
-      }
-
-      if (pagina == 1) {
-        router.push({
-          name: 'ContratoCompraVenta',
-          params: { rut: rutCliente, idPrep: id, patente: contractPatente, pagina }
+          params: { rut: rut, idPrep: id, patente: contractPatente, pagina }
         });
       }
 
       if (pagina == 2) {
-        router.push({
+        routeData = router.resolve({
           name: 'CartaResponsabilidad',
-          params: { rut: rutCliente, patente: contractPatente, idPrep: id }
+          params: { rut: rut, patente: contractPatente, idPrep: id }
         });
+      }
+
+      if (routeData) {
+        window.open(routeData.href, '_blank');
       }
     };
 
@@ -1900,19 +1898,19 @@ export default {
                 </td>
                 <td>
                   <button type="button" class="btn btn-info btn-sm"
-                    @click.stop="goToContrato(contrato.patente_vehiculo, contrato.id, 0)">
+                    @click.stop="goToContrato(contrato.patente_vehiculo, contrato.id, 0, contrato.rut_cliente)">
                     Contado
                   </button>
                 </td>
                 <td>
                   <button type="button" class="btn btn-info btn-sm"
-                    @click.stop="goToContrato(contrato.patente_vehiculo, contrato.id, 1)">
+                    @click.stop="goToContrato(contrato.patente_vehiculo, contrato.id, 1, contrato.rut_cliente)">
                     Crédito
                   </button>
                 </td>
                 <td>
                   <button type="button" class="btn btn-info btn-sm"
-                    @click.stop="goToContrato(contrato.patente_vehiculo, contrato.id, 2)">
+                    @click.stop="goToContrato(contrato.patente_vehiculo, contrato.id, 2, contrato.rut_cliente)">
                     Carta
                   </button>
                 </td>
